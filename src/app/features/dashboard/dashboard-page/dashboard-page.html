@@ -1,0 +1,51 @@
+<div class="dashboard">
+  <header class="page-header">
+    <h1>Resumen del Sistema</h1>
+    <p>Bienvenido de nuevo, aquí está lo que está pasando hoy.</p>
+  </header>
+
+  <div class="stats-grid">
+    <div *ngFor="let stat of stats" class="stat-card">
+      <div class="stat-icon" [ngClass]="stat.color">
+        <span class="material-icons-round">{{stat.icon}}</span>
+      </div>
+      <div class="stat-info">
+        <p class="stat-label">{{stat.label}}</p>
+        <h3 class="stat-value">{{stat.value}}</h3>
+        <p class="stat-change">{{stat.change}} <span class="trend">desde ayer</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-content">
+    <section class="activity-section">
+      <div class="section-header">
+        <h2>Actividad Reciente</h2>
+        <button class="view-all">Ver todo</button>
+      </div>
+      <div class="activity-list">
+        <div *ngFor="let item of recentActivity" class="activity-item">
+          <div class="user-avatar">{{item.avatar}}</div>
+          <div class="activity-details">
+            <p class="activity-user">{{item.user}}</p>
+            <p class="activity-action">{{item.action}}</p>
+          </div>
+          <span class="activity-time">{{item.time}}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="chart-placeholder">
+      <div class="section-header">
+        <h2>Crecimiento de Puntos</h2>
+      </div>
+      <div class="placeholder-graphic">
+        <!-- We can add a real chart later, for now a premium placeholder -->
+        <div class="premium-empty">
+          <span class="material-icons-round">analytics</span>
+          <p>Gráficos de rendimiento cargando...</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

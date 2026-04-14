@@ -1,0 +1,29 @@
+<aside class="sidebar">
+  <div class="logo-container">
+    <div class="logo-icon">R</div>
+    <span class="logo-text">Refer<span>Admin</span></span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a *ngFor="let item of menuItems" 
+       [routerLink]="item.route" 
+       routerLinkActive="active" 
+       class="nav-item">
+      <span class="material-icons-round">{{item.icon}}</span>
+      <span class="item-label">{{item.label}}</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar">{{ user()?.name?.substring(0,2) || 'AD' }}</div>
+      <div class="user-details">
+        <p class="user-name">{{ user()?.name || 'Admin User' }}</p>
+        <p class="user-role">Super Admin</p>
+      </div>
+      <button class="logout-btn" (click)="logout()" title="Cerrar Sesión">
+        <span class="material-icons-round">logout</span>
+      </button>
+    </div>
+  </div>
+</aside>
