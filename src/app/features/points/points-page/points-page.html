@@ -1,0 +1,316 @@
+<div class="points-page">
+  <!-- Toast notification -->
+  <div class="toast-notification" *ngIf="toast()" [class.toast-success]="toast()?.type === 'success'" [class.toast-error]="toast()?.type === 'error'">
+    <span class="material-icons-round">{{ toast()?.type === 'success' ? 'check_circle' : 'error' }}</span>
+    {{ toast()?.message }}
+  </div>
+
+  <!-- Main Content area -->
+  <div class="points-main" [class.detail-open]="selectedReward() || isAdding()">
+    <header class="page-header">
+      <div class="header-content">
+        <h1>Puntos y Canjes</h1>
+        <p>Administra los productos del catálogo de recompensas y consulta el historial de transacciones de puntos.</p>
+        
+        <!-- Tabs selector -->
+        <div class="tab-filters">
+          <button class="tab-btn" [class.active]="activeTab() === 'rewards'" (click)="switchTab('rewards')">
+            <span class="material-icons-round">card_giftcard</span>
+            Catálogo de Canjes
+          </button>
+          <button class="tab-btn" [class.active]="activeTab() === 'history'" (click)="switchTab('history')">
+            <span class="material-icons-round">history</span>
+            Registro de Puntos
+          </button>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="search-box">
+          <span class="material-icons-round">search</span>
+          <input 
+            type="text" 
+            [placeholder]="activeTab() === 'rewards' ? 'Buscar recompensa...' : 'Buscar usuario o motivo...'" 
+            [ngModel]="searchTerm()" 
+            (ngModelChange)="searchTerm.set($event)"
+          >
+        </div>
+        <button *ngIf="activeTab() === 'rewards'" class="btn-primary" (click)="openAddModal()">
+          <span class="material-icons-round">add</span>
+          Nueva Recompensa
+        </button>
+      </div>
+    </header>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading()" class="loading-overlay">
+      <div class="skeleton-table">
+        <div *ngFor="let i of [1,2,3,4,5]" class="skeleton-row"></div>
+      </div>
+    </div>
+
+    <!-- Catalog View -->
+    <div *ngIf="!isLoading() && activeTab() === 'rewards'" class="catalog-content">
+      <div class="rewards-grid">
+        <div *ngFor="let reward of filteredRewards()" class="reward-card" [class.inactive]="!reward.isActive" (click)="openDetail(reward)">
+          <div class="reward-media">
+            <img *ngIf="reward.imageUrl" [src]="reward.imageUrl" [alt]="reward.title">
+            <div *ngIf="!reward.imageUrl" class="fallback-icon">
+              <span class="material-icons-round">{{reward.icon || 'star'}}</span>
+            </div>
+            <div class="points-badge">
+              {{reward.starsRequired}} pts
+            </div>
+          </div>
+          <div class="reward-body">
+            <h3 class="reward-title">{{reward.title}}</h3>
+            <p class="reward-description">{{reward.description}}</p>
+            <div class="reward-footer">
+              <span class="status-indicator" [class.active]="reward.isActive">
+                {{reward.isActive ? 'Activo' : 'Inactivo'}}
+              </span>
+              <div class="actions">
+                <button class="action-icon edit" title="Editar" (click)="$event.stopPropagation(); startEdit(reward)">
+                  <span class="material-icons-round">edit</span>
+                </button>
+                <button class="action-icon delete" title="Eliminar" (click)="$event.stopPropagation(); deleteReward(reward.id)">
+                  <span class="material-icons-round">delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="filteredRewards().length === 0" class="empty-state">
+        <span class="material-icons-round">featured_play_list</span>
+        <p>No se encontraron recompensas en el catálogo</p>
+      </div>
+    </div>
+
+    <!-- History View (Points Ledger) -->
+    <div *ngIf="!isLoading() && activeTab() === 'history'" class="history-content card-container">
+      <table class="points-table">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Tipo</th>
+            <th>Detalle</th>
+            <th>Puntos</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tx of filteredTransactions()">
+            <td>
+              <div class="user-identity" *ngIf="tx.user">
+                <div class="avatar">
+                  <img *ngIf="tx.user.photoUrl" [src]="tx.user.photoUrl" alt="Avatar">
+                  <span *ngIf="!tx.user.photoUrl">{{tx.user.name.substring(0, 2).toUpperCase()}}</span>
+                </div>
+                <div class="user-info">
+                  <span class="user-name">{{tx.user.name}}</span>
+                  <span class="user-email">{{tx.user.email}}</span>
+                </div>
+              </div>
+              <span *ngIf="!tx.user" class="text-muted">Usuario desconocido</span>
+            </td>
+            <td>
+              <span class="type-badge" [class.earn]="tx.type === 'earn'" [class.redeem]="tx.type === 'redeem'">
+                {{tx.type === 'earn' ? 'Sumado' : 'Canjeado'}}
+              </span>
+            </td>
+            <td>
+              <span class="tx-title">{{tx.title}}</span>
+            </td>
+            <td>
+              <span class="points-text" [class.positive]="tx.stars > 0" [class.negative]="tx.stars < 0">
+                {{tx.stars > 0 ? '+' : ''}}{{tx.stars}} pts
+              </span>
+            </td>
+            <td>
+              <span class="date-text">{{tx.date | date:'medium'}}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="filteredTransactions().length === 0" class="empty-state">
+        <span class="material-icons-round">history_toggle_off</span>
+        <p>No se han registrado transacciones de puntos</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail & Form Sidebar -->
+  <aside class="reward-detail-sidebar" *ngIf="selectedReward() || isAdding()">
+    
+    <!-- 1. ADD REWARD MODE -->
+    <ng-container *ngIf="isAdding()">
+      <div class="detail-header">
+        <div class="header-top">
+          <div class="active-label">NUEVA RECOMPENSA</div>
+          <button class="close-btn" (click)="closeAddModal()">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <h2 class="detail-title">Crear Recompensa</h2>
+      </div>
+
+      <div class="detail-content form-container">
+        <div class="form-group">
+          <label>Producto Asignado (Auto-llenar)</label>
+          <select [ngModel]="formProductId()" (ngModelChange)="onProductChange($event)" class="form-control">
+            <option value="" disabled selected>-- Selecciona un producto --</option>
+            <option *ngFor="let prod of productsList()" [value]="prod.id">
+              {{prod.name}}
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Título del Canje</label>
+          <input type="text" [ngModel]="formTitle()" (ngModelChange)="formTitle.set($event)" placeholder="Ej. Croissant Relleno Gratis" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea [ngModel]="formDescription()" (ngModelChange)="formDescription.set($event)" placeholder="Describe las condiciones o qué incluye este canje..." class="form-control resize-none" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Puntos / Estrellas Requeridas</label>
+          <input type="number" [ngModel]="formStarsRequired()" (ngModelChange)="formStarsRequired.set($event)" min="1" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Icono de Recompensa (Google Icon Name)</label>
+          <input type="text" [ngModel]="formIcon()" (ngModelChange)="formIcon.set($event)" placeholder="Ej. local_cafe, stars, cake" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>URL Imagen del Producto (Opcional)</label>
+          <input type="text" [ngModel]="formImageUrl()" (ngModelChange)="formImageUrl.set($event)" placeholder="https://images.unsplash.com/..." class="form-control">
+        </div>
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [ngModel]="formIsActive()" (ngModelChange)="formIsActive.set($event)">
+            ¿Activo en catálogo?
+          </label>
+        </div>
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn-primary full-width" (click)="saveNewReward()">Guardar Recompensa</button>
+        <button class="btn-secondary full-width" (click)="closeAddModal()">Cancelar</button>
+      </div>
+    </ng-container>
+
+    <!-- 2. EDIT REWARD MODE -->
+    <ng-container *ngIf="selectedReward() && isEditing()">
+      <div class="detail-header">
+        <div class="header-top">
+          <div class="active-label">EDITAR RECOMPENSA</div>
+          <button class="close-btn" (click)="closeDetail()">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <h2 class="detail-title">Editar Detalles</h2>
+      </div>
+
+      <div class="detail-content form-container">
+        <div class="form-group">
+          <label>Producto Asignado (Auto-llenar)</label>
+          <select [ngModel]="formProductId()" (ngModelChange)="onProductChange($event)" class="form-control">
+            <option value="" disabled selected>-- Selecciona un producto --</option>
+            <option *ngFor="let prod of productsList()" [value]="prod.id">
+              {{prod.name}}
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Título del Canje</label>
+          <input type="text" [ngModel]="formTitle()" (ngModelChange)="formTitle.set($event)" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea [ngModel]="formDescription()" (ngModelChange)="formDescription.set($event)" class="form-control resize-none" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Puntos / Estrellas Requeridas</label>
+          <input type="number" [ngModel]="formStarsRequired()" (ngModelChange)="formStarsRequired.set($event)" min="1" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Icono de Recompensa</label>
+          <input type="text" [ngModel]="formIcon()" (ngModelChange)="formIcon.set($event)" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>URL Imagen del Producto</label>
+          <input type="text" [ngModel]="formImageUrl()" (ngModelChange)="formImageUrl.set($event)" class="form-control">
+        </div>
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [ngModel]="formIsActive()" (ngModelChange)="formIsActive.set($event)">
+            ¿Activo en catálogo?
+          </label>
+        </div>
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn-primary full-width" (click)="saveEdit()">Guardar Cambios</button>
+        <button class="btn-secondary full-width" (click)="isEditing.set(false)">Cancelar</button>
+      </div>
+    </ng-container>
+
+    <!-- 3. VIEW DETAILS MODE -->
+    <ng-container *ngIf="selectedReward() && !isEditing()">
+      <div class="detail-header">
+        <div class="header-top">
+          <div class="active-label">DETALLES DE RECOMPENSA</div>
+          <button class="close-btn" (click)="closeDetail()">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <h2 class="detail-title">{{selectedReward()?.title}}</h2>
+      </div>
+
+      <div class="detail-content reward-profile-view">
+        <div class="reward-media-preview">
+          <img *ngIf="selectedReward()?.imageUrl" [src]="selectedReward()?.imageUrl" alt="Preview">
+          <div *ngIf="!selectedReward()?.imageUrl" class="fallback-icon-large">
+            <span class="material-icons-round">{{selectedReward()?.icon || 'stars'}}</span>
+          </div>
+        </div>
+
+        <div class="reward-info-box">
+          <span class="info-label">Descripción</span>
+          <p class="info-text">{{selectedReward()?.description}}</p>
+        </div>
+
+        <div class="meta-list">
+          <div class="meta-item">
+            <span class="meta-label">Costo en Puntos</span>
+            <span class="meta-value score">{{selectedReward()?.starsRequired}} puntos</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Icono Asignado</span>
+            <span class="meta-value">{{selectedReward()?.icon || 'stars'}}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Estado de Catálogo</span>
+            <span class="meta-value">
+              <span class="status-indicator" [class.active]="selectedReward()?.isActive">
+                {{selectedReward()?.isActive ? 'Activo / Canjeable' : 'Inactivo'}}
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-actions button-row">
+        <button class="btn-primary flex-1" (click)="startEdit(selectedReward()!)">
+          <span class="material-icons-round">edit</span> Editar
+        </button>
+        <button class="btn-danger flex-1" (click)="deleteReward(selectedReward()!.id)">
+          <span class="material-icons-round">delete</span> Eliminar
+        </button>
+      </div>
+    </ng-container>
+
+  </aside>
+</div>

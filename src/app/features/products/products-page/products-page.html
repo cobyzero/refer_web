@@ -1,0 +1,459 @@
+<div class="products-container">
+  <!-- Header Section -->
+  <header class="page-header">
+    <div class="header-titles">
+      <h1>{{ t().PRODUCTS_TITLE }}</h1>
+      <p class="subtitle">{{ t().PRODUCTS_SUBTITLE }}</p>
+    </div>
+    <button class="add-product-btn" (click)="openAddModal()">
+      <span class="material-icons-round">add</span>
+      <span>{{ t().BTN_ADD_PRODUCT }}</span>
+    </button>
+  </header>
+
+  <!-- Controls (Search & Filters) -->
+  <div class="controls-card">
+    <div class="search-and-status">
+      <!-- Search Input -->
+      <div class="search-box">
+        <span class="material-icons-round search-icon">search</span>
+        <input type="text" [placeholder]="t().PRODUCTS_SEARCH_PLACEHOLDER" [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)" />
+      </div>
+
+      <!-- Availability Select -->
+      <div class="filter-group">
+        <span class="filter-label">{{ t().PRODUCTS_AVAILABILITY }}</span>
+        <div class="segmented-control">
+          <button [class.active]="availabilityFilter() === 'all'" (click)="setAvailabilityFilter('all')">
+            {{ t().PRODUCTS_AVAIL_ALL }}
+          </button>
+          <button [class.active]="availabilityFilter() === 'available'" (click)="setAvailabilityFilter('available')">
+            {{ t().PRODUCTS_AVAIL_AVAILABLE }}
+          </button>
+          <button [class.active]="availabilityFilter() === 'unavailable'"
+            (click)="setAvailabilityFilter('unavailable')">
+            {{ t().PRODUCTS_AVAIL_UNAVAILABLE }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="categories-tabs-container">
+      <div class="categories-tabs">
+        <button [class.active]="selectedCategoryId() === 'all'" (click)="selectCategory('all')" class="category-tab">
+          <span class="material-icons-round tab-icon">coffee</span>
+          {{ t().PRODUCTS_AVAIL_ALL }}
+        </button>
+
+        @for (category of categories(); track category.id) {
+        <button [class.active]="selectedCategoryId() === category.id" (click)="selectCategory(category.id)"
+          class="category-tab">
+          <span class="material-icons-round tab-icon">local_cafe</span>
+          {{ category.name }}
+        </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+  <div class="loader-container">
+    <div class="spinner"></div>
+    <p>{{ t().PRODUCTS_LOADING }}</p>
+  </div>
+  } @else {
+  <!-- Empty State -->
+  @if (filteredProducts().length === 0) {
+  <div class="empty-state">
+    <span class="material-icons-round empty-icon">sentiment_dissatisfied</span>
+    <h3>{{ t().PRODUCTS_EMPTY_STATE }}</h3>
+    <p>{{ t().PRODUCTS_EMPTY_STATE_SUB }}</p>
+  </div>
+  } @else {
+  <!-- Products Grid -->
+  <div class="products-grid">
+    @for (product of filteredProducts(); track product.id) {
+    <div class="product-card" (click)="openProductDetail(product)">
+      <!-- Image Area -->
+      <div class="card-image-wrapper">
+        <img [src]="product.imageUrl || getFallbackImage(product)" [alt]="product.name" class="product-image"
+          loading="lazy" />
+
+        <!-- Category Badge -->
+        <span class="category-badge">{{ product.category?.name || t().PRODUCTS_FALLBACK_CATEGORY }}</span>
+
+        <!-- Reward Stars Badge -->
+        @if (product.starsReward > 0) {
+        <span class="stars-badge">
+          <span class="material-icons-round star-icon">stars</span>
+          +{{ product.starsReward }}
+        </span>
+        }
+
+        <!-- Availability Badge -->
+        <span class="status-badge" [class.unavailable]="!product.isAvailable">
+          {{ product.isAvailable ? t().MODAL_AVAILABLE : t().MODAL_UNAVAILABLE }}
+        </span>
+      </div>
+
+      <!-- Content Area -->
+      <div class="card-content">
+        <div class="card-meta">
+          <h2 class="product-title">{{ product.name }}</h2>
+          <div class="rating-display" *ngIf="product.rating > 0">
+            <span class="material-icons-round rating-star">star</span>
+            <span class="rating-value">{{ product.rating | number:'1.1-1' }}</span>
+          </div>
+        </div>
+
+        <p class="product-description">{{ product.description }}</p>
+
+        <div class="card-footer">
+          <span class="price-tag">{{ product.price | currency:'USD':'symbol':'1.2-2' }}</span>
+
+          <button class="detail-btn">
+            <span>{{ t().PRODUCTS_DETAIL_BTN }}</span>
+            <span class="material-icons-round btn-arrow">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+  }
+  }
+
+  <!-- Detail Modal -->
+  @if (selectedProduct(); as product) {
+  <div class="modal-backdrop" (click)="closeProductDetail()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <!-- Close Button -->
+      <button class="close-modal-btn" (click)="closeProductDetail()">
+        <span class="material-icons-round">close</span>
+      </button>
+
+      <!-- Edit Button (Only visible if not editing) -->
+      @if (!isEditing()) {
+      <button class="edit-modal-btn" (click)="startEdit()" [title]="t().EDIT_BTN_EDIT">
+        <span class="material-icons-round">edit</span>
+      </button>
+      }
+
+      <div class="modal-layout">
+        <!-- Left Column (Visual) -->
+        <div class="modal-media">
+          <img [src]="product.imageUrl || getFallbackImage(product)" [alt]="product.name" class="modal-image" />
+          <div class="modal-media-overlay">
+            <span class="category-badge modal-category">{{ product.category?.name || t().PRODUCTS_FALLBACK_CATEGORY
+              }}</span>
+            <span class="status-badge modal-status" [class.unavailable]="!product.isAvailable">
+              {{ product.isAvailable ? t().MODAL_AVAILABLE : t().MODAL_UNAVAILABLE }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Right Column (Details / Edit Form) -->
+        <div class="modal-details">
+          @if (!isEditing()) {
+          <div class="modal-header-info">
+            <h2>{{ product.name }}</h2>
+            <div class="modal-meta-row">
+              <span class="modal-price">{{ product.price | currency:'USD':'symbol':'1.2-2' }}</span>
+
+              @if (product.rating > 0) {
+              <div class="modal-rating">
+                <span class="material-icons-round">star</span>
+                <strong>{{ product.rating | number:'1.1-1' }}</strong>
+                <span>({{ product.numReviews }} {{ t().MODAL_OPINIONS }})</span>
+              </div>
+              }
+            </div>
+          </div>
+
+          <p class="modal-description">{{ product.description }}</p>
+
+          <!-- Rewards Banner -->
+          @if (product.starsReward > 0) {
+          <div class="rewards-banner">
+            <span class="material-icons-round banner-star">stars</span>
+            <div class="banner-text">
+              <strong>{{ t().MODAL_REWARDS_EARN.replace('{stars}', product.starsReward.toString()) }}</strong>
+              <span>{{ t().MODAL_REWARDS_SUB }}</span>
+            </div>
+          </div>
+          }
+
+          <!-- Configurations Accordion/List -->
+          <div class="product-configs">
+            <!-- Sizes -->
+            @if (product.sizeOptions && product.sizeOptions.length > 0) {
+            <div class="config-section">
+              <h3>
+                <span class="material-icons-round section-icon">straighten</span>
+                {{ t().MODAL_SIZES }}
+              </h3>
+              <div class="config-grid">
+                @for (opt of product.sizeOptions; track opt.id) {
+                <div class="config-pill">
+                  <span class="pill-name">{{ opt.size.name }}</span>
+                  <span class="pill-price">
+                    {{ opt.priceAdjustment === 0 ? t().MODAL_BASE_PRICE : '+' + (opt.priceAdjustment |
+                    currency:'USD':'symbol':'1.2-2') }}
+                  </span>
+                </div>
+                }
+              </div>
+            </div>
+            }
+
+            <!-- Types/Options -->
+            @if (product.options && product.options.length > 0) {
+            <div class="config-section">
+              <h3>
+                <span class="material-icons-round section-icon">list_alt</span>
+                {{ t().MODAL_TYPES }}
+              </h3>
+              <div class="config-grid">
+                @for (opt of product.options; track opt.id) {
+                <div class="config-pill">
+                  <span class="pill-name">{{ opt.name }}</span>
+                  <span class="pill-price">
+                    {{ opt.priceAdjustment === 0 ? t().MODAL_NO_COST : '+' + (opt.priceAdjustment |
+                    currency:'USD':'symbol':'1.2-2') }}
+                  </span>
+                </div>
+                }
+              </div>
+            </div>
+            }
+
+            <!-- Enhancements -->
+            @if (product.enhancements && product.enhancements.length > 0) {
+            <div class="config-section">
+              <h3>
+                <span class="material-icons-round section-icon">add_circle_outline</span>
+                {{ t().MODAL_EXTRAS }}
+              </h3>
+              <div class="config-grid">
+                @for (opt of product.enhancements; track opt.id) {
+                <div class="config-pill">
+                  <span class="pill-name">{{ opt.name }}</span>
+                  <span class="pill-price">
+                    +{{ opt.price | currency:'USD':'symbol':'1.2-2' }}
+                  </span>
+                </div>
+                }
+              </div>
+            </div>
+            }
+          </div>
+          } @else {
+          <!-- Edit Form View -->
+          <div class="edit-form">
+            <h2>{{ t().EDIT_TITLE }}</h2>
+
+            <div class="form-field">
+              <label>{{ t().EDIT_LABEL_NAME }}</label>
+              <input type="text" [ngModel]="editName()" (ngModelChange)="editName.set($event)" class="form-input" />
+            </div>
+
+            <div class="form-field">
+              <label>{{ t().EDIT_LABEL_DESCRIPTION }}</label>
+              <textarea rows="2" [ngModel]="editDescription()" (ngModelChange)="editDescription.set($event)"
+                class="form-textarea"></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label>{{ t().EDIT_LABEL_PRICE }}</label>
+                <input type="number" step="0.01" [ngModel]="editPrice()" (ngModelChange)="editPrice.set($event)"
+                  class="form-input" />
+              </div>
+              <div class="form-field">
+                <label>{{ t().EDIT_LABEL_STARS }}</label>
+                <input type="number" [ngModel]="editStarsReward()" (ngModelChange)="editStarsReward.set($event)"
+                  class="form-input" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label>{{ t().EDIT_LABEL_IMAGE }}</label>
+                <input type="text" [ngModel]="editImageUrl()" (ngModelChange)="editImageUrl.set($event)"
+                  class="form-input" />
+              </div>
+              <div class="form-field">
+                <label>{{ t().EDIT_LABEL_UPLOAD_IMAGE }}</label>
+                <div class="upload-btn-wrapper">
+                  <button class="btn-upload" [disabled]="isUploading()">
+                    <span class="material-icons-round">cloud_upload</span>
+                    <span>{{ isUploading() ? t().BTN_UPLOADING : t().EDIT_LABEL_UPLOAD_IMAGE }}</span>
+                  </button>
+                  <input type="file" (change)="onFileSelected($event, 'edit')" accept="image/*" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-field checkbox-field">
+              <input type="checkbox" id="edit-avail" [ngModel]="editIsAvailable()"
+                (ngModelChange)="editIsAvailable.set($event)" />
+              <label for="edit-avail">{{ t().EDIT_LABEL_AVAILABILITY }}</label>
+            </div>
+
+            <!-- Extras/Enhancements Inline Management -->
+            <div class="extras-management"
+              style="margin-top: 1rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
+              <h3
+                style="font-size: 0.95rem; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <span class="material-icons-round section-icon">add_circle_outline</span>
+                {{ t().MODAL_EXTRAS }}
+              </h3>
+
+              <!-- Existing Extras List -->
+              @if (product.enhancements && product.enhancements.length > 0) {
+              <div class="extras-list-edit"
+                style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+                @for (ext of product.enhancements; track ext.id) {
+                <div class="extra-edit-pill"
+                  style="display: flex; align-items: center; gap: 0.5rem; background-color: var(--background); border: 1px solid var(--border); padding: 0.35rem 0.65rem; border-radius: 6px; font-size: 0.8rem;">
+                  <span class="extra-edit-name" style="font-weight: 500; color: var(--text);">{{ ext.name }}</span>
+                  <span class="extra-edit-price" style="font-weight: 600; color: var(--secondary);">+{{ ext.price |
+                    currency:'USD':'symbol':'1.2-2' }}</span>
+                  <button class="delete-extra-btn" (click)="removeExtraProduct(ext.id)" title="Eliminar"
+                    style="display: flex; align-items: center; justify-content: center; color: var(--error); transition: opacity 0.2s ease; cursor: pointer;">
+                    <span class="material-icons-round" style="font-size: 1rem;">close</span>
+                  </button>
+                </div>
+                }
+              </div>
+              }
+
+              <!-- Add New Extra form inline -->
+              <div class="add-extra-inline" style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="text" [placeholder]="t().LABEL_EXTRA_NAME" [ngModel]="extraName()"
+                  (ngModelChange)="extraName.set($event)" class="form-input"
+                  style="flex: 1.5; padding: 0.5rem 0.75rem; font-size: 0.85rem;" />
+                <input type="number" step="0.05" [placeholder]="t().LABEL_EXTRA_PRICE" [ngModel]="extraPrice()"
+                  (ngModelChange)="extraPrice.set($event)" class="form-input"
+                  style="flex: 1; padding: 0.5rem 0.75rem; font-size: 0.85rem;" />
+                <button class="add-extra-btn-inline" (click)="addExtraProduct()" [disabled]="!extraName().trim()"
+                  style="display: flex; align-items: center; gap: 0.35rem; padding: 0.5rem 0.875rem; background-color: var(--background); border: 1px solid var(--secondary); border-radius: 8px; font-size: 0.8rem; font-weight: 600; color: var(--primary); transition: all 0.2s ease; cursor: pointer;">
+                  <span class="material-icons-round" style="font-size: 1rem; color: var(--secondary);">add</span>
+                  <span>{{ t().EDIT_BTN_ADD_EXTRA }}</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-secondary" (click)="cancelEdit()">{{ t().EDIT_BTN_CANCEL }}</button>
+              <button class="btn-primary" (click)="saveEdit()">
+                <span class="material-icons-round">save</span>
+                {{ t().EDIT_BTN_SAVE }}
+              </button>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Add Product Modal -->
+  @if (isAdding()) {
+  <div class="modal-backdrop">
+    <div class="modal-card" style="max-width: 600px;" (click)="$event.stopPropagation()">
+      <!-- Close Button -->
+      <button class="close-modal-btn" (click)="closeAddModal()">
+        <span class="material-icons-round">close</span>
+      </button>
+
+      <div class="modal-details" style="padding: 2.5rem;">
+        <div class="edit-form">
+          <h2>{{ t().ADD_TITLE }}</h2>
+
+          <div class="form-field">
+            <label>{{ t().EDIT_LABEL_NAME }} *</label>
+            <input type="text" [ngModel]="addName()" (ngModelChange)="addName.set($event)" class="form-input"
+              required />
+          </div>
+
+          <div class="form-field">
+            <label>{{ t().EDIT_LABEL_DESCRIPTION }}</label>
+            <textarea rows="2" [ngModel]="addDescription()" (ngModelChange)="addDescription.set($event)"
+              class="form-textarea"></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>{{ t().EDIT_LABEL_PRICE }} *</label>
+              <input type="number" step="0.01" [ngModel]="addPrice()" (ngModelChange)="addPrice.set($event)"
+                class="form-input" required />
+            </div>
+            <div class="form-field">
+              <label>{{ t().EDIT_LABEL_STARS }}</label>
+              <input type="number" [ngModel]="addStarsReward()" (ngModelChange)="addStarsReward.set($event)"
+                class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>{{ t().EDIT_LABEL_CATEGORY }} *</label>
+              <select [ngModel]="addCategoryId()" (ngModelChange)="addCategoryId.set($event)"
+                class="form-input form-select" style="background-color: var(--background);">
+                @for (category of categories(); track category.id) {
+                <option [value]="category.id">{{ category.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-field">
+              <label>{{ t().EDIT_LABEL_IMAGE }}</label>
+              <input type="text" [ngModel]="addImageUrl()" (ngModelChange)="addImageUrl.set($event)" class="form-input"
+                placeholder="https://..." />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field" style="grid-column: span 2;">
+              <label>{{ t().EDIT_LABEL_UPLOAD_IMAGE }}</label>
+              <div class="upload-btn-wrapper">
+                <button class="btn-upload" [disabled]="isUploading()">
+                  <span class="material-icons-round">cloud_upload</span>
+                  <span>{{ isUploading() ? t().BTN_UPLOADING : t().EDIT_LABEL_UPLOAD_IMAGE }}</span>
+                </button>
+                <input type="file" (change)="onFileSelected($event, 'add')" accept="image/*" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field checkbox-field">
+            <input type="checkbox" id="add-avail" [ngModel]="addIsAvailable()"
+              (ngModelChange)="addIsAvailable.set($event)" />
+            <label for="add-avail">{{ t().EDIT_LABEL_AVAILABILITY }}</label>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-secondary" (click)="closeAddModal()">{{ t().EDIT_BTN_CANCEL }}</button>
+            <button class="btn-primary" (click)="saveNewProduct()" [disabled]="!addName() || addPrice() <= 0">
+              <span class="material-icons-round">check</span>
+              {{ t().BTN_ADD_PRODUCT }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Success Toast Alert -->
+  @if (showToast()) {
+  <div class="toast-alert">
+    <span class="material-icons-round toast-icon">check_circle</span>
+    <span class="toast-text">{{ toastTextMessage() }}</span>
+  </div>
+  }
+</div>

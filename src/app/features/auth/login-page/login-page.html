@@ -1,67 +1,73 @@
-<div class="auth-wrapper">
-  <div class="background-decor">
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
+<div class="auth-page">
+  <div class="bg-container">
+    <img src="/images/cafe_bg.png" alt="Background" class="bg-image">
+    <div class="bg-overlay"></div>
   </div>
 
-  <div class="login-card">
-    <div class="card-header">
-      <div class="logo">R</div>
-      <h1>Bienvenido de nuevo</h1>
-      <p>Ingresa tus credenciales para acceder al panel de ReferAdmin</p>
-    </div>
+  <div class="quote-container">
+    <p class="quote-text">Curating the perfect brew, one bean at a time.</p>
+    <div class="quote-divider"></div>
+  </div>
 
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
-      <div *ngIf="errorMessage" class="error-alert">
-        <span class="material-icons-round">error_outline</span>
-        {{errorMessage}}
+  <div class="login-container">
+    <div class="login-card">
+      <div class="card-header">
+        <div class="logo-wrapper">
+          <img src="/images/logo.png" alt="Logo" class="logo">
+        </div>
+        <h1 class="brand-name">The Botanical Atelier</h1>
+        <p class="portal-subtitle">MANAGEMENT PORTAL</p>
       </div>
 
-      <div class="form-group">
-        <label for="email">Correo Electrónico</label>
-        <div class="input-wrapper">
-          <span class="material-icons-round">mail_outline</span>
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+        <div *ngIf="errorMessage" class="error-message">
+          {{errorMessage}}
+        </div>
+
+        <div class="form-field">
+          <label for="email">EMAIL ADDRESS</label>
           <input 
             type="email" 
             id="email" 
             formControlName="email" 
-            placeholder="admin@refer.com"
-            [class.invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+            placeholder="admin@botanicalatelier.com"
           >
         </div>
-      </div>
 
-      <div class="form-group">
-        <label for="password">Contraseña</label>
-        <div class="input-wrapper">
-          <span class="material-icons-round">lock_outline</span>
-          <input 
-            type="password" 
-            id="password" 
-            formControlName="password" 
-            placeholder="••••••••"
-            [class.invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
-          >
+        <div class="form-field">
+          <label for="password">PASSWORD</label>
+          <div class="password-input-wrapper">
+            <input 
+              [type]="showPassword ? 'text' : 'password'" 
+              id="password" 
+              formControlName="password" 
+              placeholder="••••••••"
+            >
+            <button type="button" class="toggle-password" (click)="togglePassword()">
+              <span class="material-icons-round">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+            </button>
+          </div>
         </div>
+
+        <div class="form-actions">
+          <label class="remember-me">
+            <input type="checkbox" formControlName="remember">
+            <span class="custom-checkbox"></span>
+            Remember me
+          </label>
+          <a href="#" class="forgot-password">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="signin-btn" [disabled]="loginForm.invalid || isLoading">
+          <span *ngIf="!isLoading">Sign In <span class="arrow">→</span></span>
+          <span *ngIf="isLoading" class="loader"></span>
+        </button>
+      </form>
+
+      <div class="card-footer">
+        <p>Authorized Personnel Only.</p>
+        <p>Contact IT Support for access issues.</p>
       </div>
-
-      <div class="form-options">
-        <label class="checkbox-container">
-          <input type="checkbox" formControlName="remember">
-          <span class="checkmark"></span>
-          Recordarme
-        </label>
-        <a href="#" class="forgot-pwd">¿Olvidaste tu contraseña?</a>
-      </div>
-
-      <button type="submit" class="submit-btn" [disabled]="loginForm.invalid || isLoading">
-        <span *ngIf="!isLoading">Iniciar Sesión</span>
-        <span *ngIf="isLoading" class="loader"></span>
-      </button>
-    </form>
-
-    <div class="card-footer">
-      <p>¿No tienes una cuenta? <a href="#">Contacta al administrador</a></p>
     </div>
   </div>
 </div>

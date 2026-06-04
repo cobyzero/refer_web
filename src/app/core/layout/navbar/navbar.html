@@ -1,10 +1,32 @@
 <header class="navbar">
   <div class="search-bar">
     <span class="material-icons-round">search</span>
-    <input type="text" placeholder="Buscar algo...">
+    <input type="text" [placeholder]="t().NAVBAR_SEARCH">
   </div>
 
   <div class="navbar-actions">
+    <!-- Language Selector Dropdown -->
+    <div class="lang-selector-container">
+      <button class="lang-btn" (click)="showLangMenu = !showLangMenu">
+        <span class="material-icons-round">language</span>
+        <span class="lang-text">{{ currentLang() === 'es' ? 'ES' : 'EN' }}</span>
+        <span class="material-icons-round chevron">expand_more</span>
+      </button>
+      
+      @if (showLangMenu) {
+        <div class="lang-dropdown">
+          <button [class.active]="currentLang() === 'es'" (click)="setLang('es')" class="lang-opt">
+            <span class="flag-icon">🇪🇸</span> Español (ES)
+          </button>
+          <button [class.active]="currentLang() === 'en'" (click)="setLang('en')" class="lang-opt">
+            <span class="flag-icon">🇺🇸</span> English (EN)
+          </button>
+        </div>
+      }
+    </div>
+
+    <div class="divider"></div>
+
     <button class="action-btn">
       <span class="material-icons-round">notifications</span>
       <span class="badge"></span>
@@ -14,7 +36,8 @@
     </button>
     <div class="divider"></div>
     <div class="date-display">
-      {{ currentDate | date:'fullDate' }}
+      <span class="date-prefix">{{ t().NAVBAR_DATE_PREFIX }}:</span>
+      {{ currentDate | date:'fullDate':undefined:currentLang() === 'es' ? 'es' : 'en' }}
     </div>
   </div>
 </header>

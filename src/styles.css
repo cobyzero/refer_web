@@ -1,21 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 
 :root {
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --secondary: #ec4899;
+  --primary: #1a362f; /* Botanical Green */
+  --primary-hover: #122822;
+  --secondary: #c5a059; /* Botanical Gold */
   --accent: #f59e0b;
-  --background: #0f172a;
-  --surface: #1e293b;
-  --surface-hover: #334155;
-  --text: #f8fafc;
-  --text-muted: #94a3b8;
-  --border: #334155;
+  --background: #fdfcf9; /* Off-white background */
+  --surface: #f2ede4; /* Botanical Cream */
+  --surface-hover: #e8e2d6;
+  --text: #1a362f;
+  --text-muted: #5c6c67;
+  --border: #d4cdc1;
   --success: #10b981;
   --error: #ef4444;
-  --glass: rgba(30, 41, 59, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass: rgba(242, 237, 228, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.2);
   --sidebar-width: 260px;
+  --botanical-dark: #122822;
+  --botanical-cream: #f2ede4;
+  --font-serif: 'Playfair Display', serif;
 }
 
 * {

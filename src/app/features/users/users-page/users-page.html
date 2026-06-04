@@ -1,0 +1,246 @@
+<div class="users-page">
+  <!-- Toast notification -->
+  <div class="toast-notification" *ngIf="toast()" [class.toast-success]="toast()?.type === 'success'" [class.toast-error]="toast()?.type === 'error'">
+    <span class="material-icons-round">{{ toast()?.type === 'success' ? 'check_circle' : 'error' }}</span>
+    {{ toast()?.message }}
+  </div>
+
+  <!-- Main Content area -->
+  <div class="users-main" [class.detail-open]="selectedUser() || isAdding()">
+    <header class="page-header">
+      <div class="header-content">
+        <h1>Usuarios</h1>
+        <p>Gestiona los accesos y visualiza la comunidad del sistema.</p>
+      </div>
+      <div class="header-actions">
+        <div class="search-box">
+          <span class="material-icons-round">search</span>
+          <input 
+            type="text" 
+            placeholder="Buscar usuario..." 
+            [ngModel]="searchTerm()" 
+            (ngModelChange)="searchTerm.set($event)"
+          >
+        </div>
+        <button class="btn-primary" (click)="openAddModal()">
+          <span class="material-icons-round">add</span>
+          Nuevo Usuario
+        </button>
+      </div>
+    </header>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading()" class="loading-overlay">
+      <div class="skeleton-table">
+        <div *ngFor="let i of [1,2,3,4,5]" class="skeleton-row"></div>
+      </div>
+    </div>
+
+    <!-- Table content -->
+    <div *ngIf="!isLoading()" class="users-content card-container">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Email</th>
+            <th>Roles</th>
+            <th>Fecha de Registro</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of filteredUsers()">
+            <td>
+              <div class="user-identity">
+                <div class="avatar" [class.admin]="isAdmin(user)">
+                  <img *ngIf="user.photoUrl" [src]="user.photoUrl" alt="Avatar">
+                  <span *ngIf="!user.photoUrl">{{getInitials(user.name)}}</span>
+                </div>
+                <div class="user-info">
+                  <span class="user-name">{{user.name}}</span>
+                  <span class="user-id">ID: {{user.id.substring(0, 8)}}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="email-text">{{user.email}}</span>
+            </td>
+            <td>
+              <div class="roles-tags">
+                <span *ngFor="let role of user.roles" class="role-tag" [class.admin]="role.name === 'ADMIN'">
+                  {{role.name}}
+                </span>
+              </div>
+            </td>
+            <td>
+              <span class="date-text">{{user.createdAt | date:'mediumDate'}}</span>
+            </td>
+            <td>
+              <div class="table-actions">
+                <button class="action-btn view" title="Ver detalles" (click)="openDetail(user)">
+                  <span class="material-icons-round">visibility</span>
+                </button>
+                <button class="action-btn edit" title="Editar" (click)="startEdit(user)">
+                  <span class="material-icons-round">edit</span>
+                </button>
+                <button class="action-btn delete" title="Eliminar" (click)="deleteUser(user.id)">
+                  <span class="material-icons-round">delete</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="filteredUsers().length === 0" class="empty-state">
+        <span class="material-icons-round">person_off</span>
+        <p>No se encontraron usuarios</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail & Form Sidebar -->
+  <aside class="user-detail" *ngIf="selectedUser() || isAdding()">
+    
+    <!-- 1. ADD USER MODE -->
+    <ng-container *ngIf="isAdding()">
+      <div class="detail-header">
+        <div class="header-top">
+          <div class="active-label">NUEVO USUARIO</div>
+          <button class="close-btn" (click)="closeAddModal()">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <h2 class="detail-title">Crear Cuenta</h2>
+      </div>
+
+      <div class="detail-content form-container">
+        <div class="form-group">
+          <label>Nombre Completo</label>
+          <input type="text" [ngModel]="formName()" (ngModelChange)="formName.set($event)" placeholder="Ej. Juan Pérez" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Correo Electrónico</label>
+          <input type="email" [ngModel]="formEmail()" (ngModelChange)="formEmail.set($event)" placeholder="Ej. juan@correo.com" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" [ngModel]="formPassword()" (ngModelChange)="formPassword.set($event)" placeholder="Mínimo 6 caracteres" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Rol de Usuario</label>
+          <select [ngModel]="formRole()" (ngModelChange)="formRole.set($event)" class="form-control">
+            <option value="USER">Usuario Regular (USER)</option>
+            <option value="ADMIN">Administrador (ADMIN)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>URL Foto de Perfil (Opcional)</label>
+          <input type="text" [ngModel]="formPhotoUrl()" (ngModelChange)="formPhotoUrl.set($event)" placeholder="https://..." class="form-control">
+        </div>
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn-primary full-width" (click)="saveNewUser()">Crear Usuario</button>
+        <button class="btn-secondary full-width" (click)="closeAddModal()">Cancelar</button>
+      </div>
+    </ng-container>
+
+    <!-- 2. EDIT USER MODE -->
+    <ng-container *ngIf="selectedUser() && isEditing()">
+      <div class="detail-header">
+        <div class="header-top">
+          <div class="active-label">EDITAR USUARIO</div>
+          <button class="close-btn" (click)="closeDetail()">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <h2 class="detail-title">Editar Detalles</h2>
+      </div>
+
+      <div class="detail-content form-container">
+        <div class="form-group">
+          <label>Nombre Completo</label>
+          <input type="text" [ngModel]="formName()" (ngModelChange)="formName.set($event)" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Correo Electrónico</label>
+          <input type="email" [ngModel]="formEmail()" (ngModelChange)="formEmail.set($event)" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Contraseña (Opcional)</label>
+          <input type="password" [ngModel]="formPassword()" (ngModelChange)="formPassword.set($event)" placeholder="Dejar en blanco para no cambiar" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Rol de Usuario</label>
+          <select [ngModel]="formRole()" (ngModelChange)="formRole.set($event)" class="form-control">
+            <option value="USER">Usuario Regular (USER)</option>
+            <option value="ADMIN">Administrador (ADMIN)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>URL Foto de Perfil</label>
+          <input type="text" [ngModel]="formPhotoUrl()" (ngModelChange)="formPhotoUrl.set($event)" class="form-control">
+        </div>
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn-primary full-width" (click)="saveEdit()">Guardar Cambios</button>
+        <button class="btn-secondary full-width" (click)="isEditing.set(false)">Cancelar</button>
+      </div>
+    </ng-container>
+
+    <!-- 3. VIEW DETAILS MODE -->
+    <ng-container *ngIf="selectedUser() && !isEditing()">
+      <div class="detail-header">
+        <div class="header-top">
+          <div class="active-label">DETALLES DEL USUARIO</div>
+          <button class="close-btn" (click)="closeDetail()">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <h2 class="detail-title">Perfil de Usuario</h2>
+      </div>
+
+      <div class="detail-content user-profile-view">
+        <div class="profile-card">
+          <div class="large-avatar" [class.admin]="isAdmin(selectedUser())">
+            <img *ngIf="selectedUser()?.photoUrl" [src]="selectedUser()?.photoUrl" alt="Avatar">
+            <span *ngIf="!selectedUser()?.photoUrl">{{getInitials(selectedUser()?.name || '')}}</span>
+          </div>
+          <h3 class="profile-name">{{selectedUser()?.name}}</h3>
+          <span class="profile-email">{{selectedUser()?.email}}</span>
+        </div>
+
+        <div class="profile-meta-list">
+          <div class="meta-item">
+            <span class="meta-label">ID Único</span>
+            <span class="meta-value copyable">{{selectedUser()?.id}}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Rol del Sistema</span>
+            <span class="meta-value">
+              <span class="role-tag" [class.admin]="isAdmin(selectedUser())">
+                {{isAdmin(selectedUser()) ? 'ADMINISTRADOR' : 'USUARIO REGULAR'}}
+              </span>
+            </span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Miembro Desde</span>
+            <span class="meta-value">{{selectedUser()?.createdAt | date:'medium'}}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-actions button-row">
+        <button class="btn-primary flex-1" (click)="isEditing.set(true)">
+          <span class="material-icons-round">edit</span> Editar
+        </button>
+        <button class="btn-danger flex-1" (click)="deleteUser(selectedUser()!.id)">
+          <span class="material-icons-round">delete</span> Eliminar
+        </button>
+      </div>
+    </ng-container>
+
+  </aside>
+</div>

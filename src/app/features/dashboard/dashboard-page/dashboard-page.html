@@ -1,49 +1,69 @@
 <div class="dashboard">
   <header class="page-header">
     <h1>Resumen del Sistema</h1>
-    <p>Bienvenido de nuevo, aquí está lo que está pasando hoy.</p>
+    <p>Bienvenido de nuevo. Aquí tienes un vistazo de hoy.</p>
   </header>
 
-  <div class="stats-grid">
-    <div *ngFor="let stat of stats" class="stat-card">
-      <div class="stat-icon" [ngClass]="stat.color">
-        <span class="material-icons-round">{{stat.icon}}</span>
+  <!-- Loading State -->
+  <div *ngIf="isLoading() && !summary()" class="loading-overlay">
+    <div class="skeleton-stats">
+      <div *ngFor="let i of [1,2,3,4]" class="skeleton-card"></div>
+    </div>
+  </div>
+
+  <div *ngIf="summary()" class="stats-grid">
+    <div *ngFor="let stat of summary()?.stats" class="stat-card">
+      <div class="stat-header">
+        <div class="stat-icon" [ngClass]="stat.color">
+          <span class="material-icons-round">{{stat.icon}}</span>
+        </div>
+        <div class="stat-trend" [ngClass]="stat.change.startsWith('+') ? 'up' : 'down'">
+          <span class="material-icons-round">{{stat.change.startsWith('+') ? 'trending_up' : 'trending_down'}}</span>
+          {{stat.change}}
+        </div>
       </div>
-      <div class="stat-info">
-        <p class="stat-label">{{stat.label}}</p>
-        <h3 class="stat-value">{{stat.value}}</h3>
-        <p class="stat-change">{{stat.change}} <span class="trend">desde ayer</span></p>
+      <div class="stat-main">
+        <h3>{{stat.value}}</h3>
+        <p>{{stat.label}}</p>
       </div>
     </div>
   </div>
 
-  <div class="dashboard-content">
-    <section class="activity-section">
+  <div *ngIf="summary()" class="dashboard-content">
+    <section class="activity-section card-container">
       <div class="section-header">
         <h2>Actividad Reciente</h2>
-        <button class="view-all">Ver todo</button>
+        <button class="btn-ghost">Ver todo</button>
       </div>
+      
       <div class="activity-list">
-        <div *ngFor="let item of recentActivity" class="activity-item">
-          <div class="user-avatar">{{item.avatar}}</div>
-          <div class="activity-details">
-            <p class="activity-user">{{item.user}}</p>
-            <p class="activity-action">{{item.action}}</p>
+        <div *ngFor="let item of summary()?.recentActivity" class="activity-item">
+          <div class="avatar-wrapper">
+            <div class="avatar">{{item.avatar}}</div>
+            <div class="status-dot"></div>
+          </div>
+          <div class="activity-info">
+            <h4>{{item.user}}</h4>
+            <p>{{item.action}}</p>
           </div>
           <span class="activity-time">{{item.time}}</span>
+        </div>
+        <div *ngIf="summary()?.recentActivity?.length === 0" class="empty-state">
+           <p>No hay actividad reciente</p>
         </div>
       </div>
     </section>
 
-    <section class="chart-placeholder">
+    <section class="chart-card card-container">
       <div class="section-header">
         <h2>Crecimiento de Puntos</h2>
       </div>
-      <div class="placeholder-graphic">
-        <!-- We can add a real chart later, for now a premium placeholder -->
-        <div class="premium-empty">
+      
+      <div class="chart-container">
+        <div class="placeholder-visual">
           <span class="material-icons-round">analytics</span>
-          <p>Gráficos de rendimiento cargando...</p>
+          <p>Análisis en Tiempo Real</p>
+          <p class="subtitle">Sincronizando los últimos datos de café...</p>
         </div>
       </div>
     </section>

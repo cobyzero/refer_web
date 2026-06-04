@@ -1,59 +1,91 @@
-# ReferAdmin
+# Botanical Atelier - Admin Dashboard
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.7.
+Este es el panel de administración web para **Botanical Atelier**, un sistema de fidelización, puntos y gestión para una cafetería de especialidad y boutique de bebidas.
 
-## Development server
+El proyecto está construido con **Angular** utilizando componentes modernos y reactivos.
 
-To start a local development server, run:
+---
 
-```bash
-ng serve
+## 📸 Capturas de Pantalla
+
+### 1. Resumen del Sistema (Dashboard)
+Aquí se visualizan las métricas clave como usuarios totales, órdenes realizadas, estrellas/puntos repartidos y puntos canjeados, así como la actividad reciente y gráficos de crecimiento en tiempo real.
+
+![Dashboard](./1.png)
+
+### 2. Catálogo de Productos
+Sección para explorar y gestionar la oferta de especialidades (Café, Té, Panadería, Mercancía), incluyendo precios, disponibilidad e incentivos de estrellas por producto.
+
+![Productos](./2.png)
+
+---
+
+## 🛠️ Tecnologías y Arquitectura
+
+El frontend de la aplicación se ha desarrollado con las siguientes tecnologías:
+
+- **Framework:** [Angular v21+](https://angular.dev/)
+- **Gestor de Paquetes:** [Bun](https://bun.sh/)
+- **Comunicación en Tiempo Real:** [Socket.IO Client](https://socket.io/) (para sincronización de actividad y eventos en vivo)
+- **Gestión de Estado y Reactividad:** RxJS
+- **Pruebas Unitarias:** [Vitest](https://vitest.dev/)
+
+### Estructura del Proyecto
+
+```tree
+src/app/
+├── core/         # Layouts, guards, interceptores y servicios globales
+├── data/         # Servicios de datos, repositorios y modelos de API
+├── features/     # Módulos y páginas funcionales de la aplicación
+│   ├── auth/       # Pantallas de Login y recuperación
+│   ├── dashboard/  # Panel principal con resúmenes y estadísticas
+│   ├── orders/     # Control y flujo de pedidos
+│   ├── points/     # Control de puntos/estrellas y canjes
+│   ├── products/   # Catálogo y edición de productos
+│   └── users/      # Gestión de clientes y administradores
+└── shared/       # Componentes visuales y utilidades reutilizables
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+---
 
-## Code scaffolding
+## 🚀 Inicio Rápido
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+### Requisitos Previos
 
-```bash
-ng generate component component-name
-```
+Asegúrate de tener instalado [Bun](https://bun.sh/) o Node.js en tu sistema.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+### Instalación de Dependencias
 
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+Instala los módulos necesarios ejecutando:
 
 ```bash
-ng build
+bun install
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+### Servidor de Desarrollo
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Para iniciar el servidor de desarrollo local, ejecuta:
 
 ```bash
-ng test
+bun start
 ```
 
-## Running end-to-end tests
+Una vez que el servidor esté corriendo, navega a `http://localhost:4200/`. La aplicación se recargará automáticamente al detectar cambios en los archivos fuente.
 
-For end-to-end (e2e) testing, run:
+### Construcción para Producción
+
+Para compilar y optimizar el proyecto para producción, ejecuta:
 
 ```bash
-ng e2e
+bun run build
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Los archivos resultantes se almacenarán en el directorio `dist/`.
 
-## Additional Resources
+### Ejecutar Pruebas
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Para correr las pruebas unitarias con Vitest:
+
+```bash
+bun test
+```

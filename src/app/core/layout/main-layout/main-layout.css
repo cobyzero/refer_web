@@ -1,18 +1,46 @@
 .layout-container {
   display: flex;
   min-height: 100vh;
+  background-color: var(--background);
 }
 
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0; /* Prevents overflow issues */
-  background-color: var(--background);
+  min-width: 0;
+  background: 
+    radial-gradient(circle at 0% 0%, rgba(26, 54, 47, 0.02) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(197, 160, 89, 0.03) 0%, transparent 50%),
+    #fdfcf9;
+  position: relative;
+}
+
+.main-content::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0.25;
+  pointer-events: none;
+  background-image: radial-gradient(var(--border) 0.5px, transparent 0.5px);
+  background-size: 30px 30px;
 }
 
 .page-container {
-  padding: 2rem;
+  padding: 0;
   flex: 1;
   overflow-y: auto;
+  position: relative;
+  z-index: 1;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.page-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.page-container::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
 }

@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { tap, catchError, of } from 'rxjs';
 
+import { API_URL } from '../../core/constants/api';
+
 export interface User {
   id: string;
   name: string;
@@ -23,7 +25,7 @@ export interface AuthResponse {
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
-  private apiUrl = 'http://localhost:3000/api/v1/auth';
+  private apiUrl = `${API_URL}/auth`;
 
   private _user = signal<User | null>(this.getStoredUser());
   user = computed(() => this._user());
@@ -57,6 +59,27 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+
+    if (this.isTokenExpired(token)) {
+      console.warn('Session expired. Logging out.');
+      this.logout();
+      return null;
+    }
+
+    return token;
+  }
+
+  isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (!payload.exp) return false;
+      
+      const expirationDate = new Date(payload.exp * 1000);
+      return expirationDate <= new Date();
+    } catch (e) {
+      return true;
+    }
   }
 }
