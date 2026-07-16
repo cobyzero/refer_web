@@ -39,6 +39,9 @@ testem.log
 /typings
 __screenshots__/
 
+# Selenium test report
+/selenium-report.html
+
 # System files
 .DS_Store
 Thumbs.db
