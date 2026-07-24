@@ -52,23 +52,23 @@ if %ERRORLEVEL% neq 0 (
 
 :: Chrome / Chromium
 set "CHROME_FOUND=false"
-where google-chrome >nul 2>&1
+where chrome >nul 2>&1
 if %ERRORLEVEL% equ 0 set "CHROME_FOUND=true"
-if "%CHROME_FOUND%"=="false" (
-  where chromium-browser >nul 2>&1
-  if %ERRORLEVEL% equ 0 set "CHROME_FOUND=true"
-)
-if "%CHROME_FOUND%"=="false" (
+
+if "!CHROME_FOUND!"=="false" (
   where chromium >nul 2>&1
   if %ERRORLEVEL% equ 0 set "CHROME_FOUND=true"
 )
-if "%CHROME_FOUND%"=="false" (
+
+if "!CHROME_FOUND!"=="false" (
   if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "CHROME_FOUND=true"
 )
-if "%CHROME_FOUND%"=="false" (
+
+if "!CHROME_FOUND!"=="false" (
   if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "CHROME_FOUND=true"
 )
-if "%CHROME_FOUND%"=="true" (
+
+if "!CHROME_FOUND!"=="true" (
   echo [OK]    Google Chrome/Chromium detectado
 ) else (
   echo [WARN]  No se detecto Google Chrome. Asegurate de tener Chrome o Chromium instalado.
@@ -78,7 +78,7 @@ if "%CHROME_FOUND%"=="true" (
 if not exist "node_modules\selenium-webdriver" (
   echo [INFO]  Instalando dependencias (selenium-webdriver)...
   call npm install --no-save selenium-webdriver @types/selenium-webdriver
-  if %ERRORLEVEL% neq 0 (
+  if !ERRORLEVEL! neq 0 (
     echo [ERROR] Fallo la instalacion de dependencias.
     exit /b 1
   )
@@ -91,32 +91,34 @@ echo.
 :: ─── VERIFICAR / INICIAR SERVIDOR ANGULAR ──────────────────────────────────
 echo [INFO]  Verificando servidor Angular en %BASE_URL% ...
 
-:: Intentar con curl (puede no estar en Windows por defecto)
 set "HTTP_CODE=failed"
+
+:: Intentar con curl primero
 where curl >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-  for /f %%i in ('curl -s -o nul -w "%%{http_code}" --max-time 8 "%BASE_URL%" 2^>nul') do set "HTTP_CODE=%%i"
+if !ERRORLEVEL! equ 0 (
+  for /f %%i in ('curl -s -o nul -w "%%{http_code}" --max-time 8 "%BASE_URL%"') do set "HTTP_CODE=%%i"
 ) else (
-  :: Fallback con PowerShell
-  for /f %%i in ('powershell -NoProfile -Command "try { (Invoke-WebRequest -Uri '%BASE_URL%' -TimeoutSec 8 -Method Head).StatusCode } catch { Write-Output 'failed' }"') do set "HTTP_CODE=%%i"
+  :: Fallback con PowerShell (escapar parentesis con ^)
+  for /f %%i in ('powershell -NoProfile -Command "try ^( ^(Invoke-WebRequest -Uri '%BASE_URL%' -TimeoutSec 8 -Method Head^).StatusCode ^) catch { Write-Output 'failed' }"') do set "HTTP_CODE=%%i"
 )
 
-if "%HTTP_CODE%"=="200" (
+if "!HTTP_CODE!"=="200" (
   echo [OK]    Servidor Angular respondiendo (HTTP 200)
   set "SERVER_RUNNING=true"
-) else if "%HTTP_CODE%"=="302" (
+) else if "!HTTP_CODE!"=="302" (
   echo [OK]    Servidor Angular respondiendo (HTTP 302)
   set "SERVER_RUNNING=true"
 ) else (
-  echo [WARN]  Servidor Angular no esta respondiendo (codigo: %HTTP_CODE%)
+  echo [WARN]  Servidor Angular no esta respondiendo (codigo: !HTTP_CODE!)
   set "SERVER_RUNNING=false"
 )
 
-if "%SERVER_RUNNING%"=="false" (
+if "!SERVER_RUNNING!"=="false" (
   echo.
+  
   :: Verificar si bun esta instalado
   where bun >nul 2>&1
-  if %ERRORLEVEL% neq 0 (
+  if !ERRORLEVEL! neq 0 (
     echo [ERROR] bun no esta instalado. Instalalo desde https://bun.sh
     exit /b 1
   )
@@ -135,15 +137,15 @@ if "%SERVER_RUNNING%"=="false" (
     echo [INFO]  Esperando a que Angular este listo...
 
     for /L %%i in (1,1,90) do (
-      :: Esperar 2 segundos
+      rem Esperar 2 segundos
       timeout /t 2 /nobreak >nul 2>&1
 
       set "HTTP_CODE=failed"
       where curl >nul 2>&1
       if !ERRORLEVEL! equ 0 (
-        for /f %%c in ('curl -s -o nul -w "%%{http_code}" --max-time 3 "%BASE_URL%" 2^>nul') do set "HTTP_CODE=%%c"
+        for /f %%c in ('curl -s -o nul -w "%%{http_code}" --max-time 3 "%BASE_URL%"') do set "HTTP_CODE=%%c"
       ) else (
-        for /f %%c in ('powershell -NoProfile -Command "try { (Invoke-WebRequest -Uri '%BASE_URL%' -TimeoutSec 3 -Method Head).StatusCode } catch { Write-Output 'failed' }"') do set "HTTP_CODE=%%c"
+        for /f %%c in ('powershell -NoProfile -Command "try ^( ^(Invoke-WebRequest -Uri '%BASE_URL%' -TimeoutSec 3 -Method Head^).StatusCode ^) catch { Write-Output 'failed' }"') do set "HTTP_CODE=%%c"
       )
 
       if "!HTTP_CODE!"=="200" (
@@ -158,8 +160,6 @@ if "%SERVER_RUNNING%"=="false" (
     )
 
     echo [ERROR] El servidor Angular no se inicio en aproximadamente 180 segundos.
-    :: Intentar detener el servidor
-    echo [INFO]  Deteniendo servidor Angular...
     taskkill /f /fi "WINDOWTITLE eq Angular Dev Server" >nul 2>&1
     exit /b 1
 
@@ -176,21 +176,21 @@ echo [INFO]  Verificando backend API en %API_URL% ...
 
 set "API_CODE=failed"
 where curl >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-  for /f %%i in ('curl -s -o nul -w "%%{http_code}" --max-time 5 "%API_URL%" 2^>nul') do set "API_CODE=%%i"
+if !ERRORLEVEL! equ 0 (
+  for /f %%i in ('curl -s -o nul -w "%%{http_code}" --max-time 5 "%API_URL%"') do set "API_CODE=%%i"
 ) else (
-  for /f %%i in ('powershell -NoProfile -Command "try { (Invoke-WebRequest -Uri '%API_URL%' -TimeoutSec 5 -Method Head).StatusCode } catch { Write-Output 'failed' }"') do set "API_CODE=%%i"
+  for /f %%i in ('powershell -NoProfile -Command "try ^( ^(Invoke-WebRequest -Uri '%API_URL%' -TimeoutSec 5 -Method Head^).StatusCode ^) catch { Write-Output 'failed' }"') do set "API_CODE=%%i"
 )
 
-if "%API_CODE%"=="200" (
+if "!API_CODE!"=="200" (
   echo [OK]    Backend API respondiendo (HTTP 200)
-) else if "%API_CODE%"=="302" (
+) else if "!API_CODE!"=="302" (
   echo [OK]    Backend API respondiendo (HTTP 302)
-) else if "%API_CODE%"=="failed" (
+) else if "!API_CODE!"=="failed" (
   echo [WARN]  Backend API no disponible. Las pruebas pueden fallar si requieren datos reales.
   echo [WARN]  Asegurate de que el backend este corriendo en %API_URL%
 ) else (
-  echo [WARN]  Backend API respondiendo con codigo inesperado (HTTP %API_CODE%). Las pruebas pueden fallar.
+  echo [WARN]  Backend API respondiendo con codigo inesperado (HTTP !API_CODE!). Las pruebas pueden fallar.
 )
 
 echo.
