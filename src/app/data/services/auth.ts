@@ -63,7 +63,7 @@ export class AuthService {
     if (!token) return null;
 
     if (this.isTokenExpired(token)) {
-      console.warn('Session expired. Logging out.');
+      console.warn('Sesión expirada. Cerrando sesión.');
       this.logout();
       return null;
     }

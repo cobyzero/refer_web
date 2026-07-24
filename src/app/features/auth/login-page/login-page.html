@@ -1,11 +1,11 @@
 <div class="auth-page">
   <div class="bg-container">
-    <img src="/images/cafe_bg.png" alt="Background" class="bg-image">
+    <img src="/images/cafe_bg.png" alt="Fondo" class="bg-image">
     <div class="bg-overlay"></div>
   </div>
 
   <div class="quote-container">
-    <p class="quote-text">Curating the perfect brew, one bean at a time.</p>
+    <p class="quote-text">Preparando la infusión perfecta, un grano a la vez.</p>
     <div class="quote-divider"></div>
   </div>
 
@@ -13,10 +13,10 @@
     <div class="login-card">
       <div class="card-header">
         <div class="logo-wrapper">
-          <img src="/images/logo.png" alt="Logo" class="logo">
+          <img src="/images/logo.png" alt="Logotipo" class="logo">
         </div>
-        <h1 class="brand-name">Raymund Coffe</h1>
-        <p class="portal-subtitle">MANAGEMENT PORTAL</p>
+        <h1 class="brand-name">Raymund Coffee</h1>
+        <p class="portal-subtitle">PORTAL DE ADMINISTRACIÓN</p>
       </div>
 
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
@@ -25,24 +25,32 @@
         </div>
 
         <div class="form-field">
-          <label for="email">EMAIL ADDRESS</label>
-          <input 
-            type="email" 
-            id="email" 
-            formControlName="email" 
-            placeholder="admin@botanicalatelier.com"
-          >
+          <label for="email">CORREO ELECTRÓNICO</label>
+          <div class="input-wrapper">
+            <span class="input-icon material-icons-round">mail_outline</span>
+            <input 
+              type="email" 
+              id="email" 
+              formControlName="email" 
+              placeholder="admin@botanicalatelier.com"
+              autocomplete="email"
+            >
+          </div>
         </div>
 
         <div class="form-field">
-          <label for="password">PASSWORD</label>
+          <label for="password">CONTRASEÑA</label>
           <div class="password-input-wrapper">
-            <input 
-              [type]="showPassword ? 'text' : 'password'" 
-              id="password" 
-              formControlName="password" 
-              placeholder="••••••••"
-            >
+            <div class="input-wrapper">
+              <span class="input-icon material-icons-round">lock_outline</span>
+              <input 
+                [type]="showPassword ? 'text' : 'password'" 
+                id="password" 
+                formControlName="password" 
+                placeholder="••••••••"
+                autocomplete="current-password"
+              >
+            </div>
             <button type="button" class="toggle-password" (click)="togglePassword()">
               <span class="material-icons-round">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
             </button>
@@ -53,20 +61,26 @@
           <label class="remember-me">
             <input type="checkbox" formControlName="remember">
             <span class="custom-checkbox"></span>
-            Remember me
+            Recordarme
           </label>
-          <a href="#" class="forgot-password">Forgot password?</a>
+          <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
         </div>
 
         <button type="submit" class="signin-btn" [disabled]="loginForm.invalid || isLoading">
-          <span *ngIf="!isLoading">Sign In <span class="arrow">→</span></span>
+          <span *ngIf="!isLoading" class="btn-content">
+            Iniciar Sesión <span class="arrow">→</span>
+          </span>
           <span *ngIf="isLoading" class="loader"></span>
         </button>
       </form>
 
       <div class="card-footer">
-        <p>Authorized Personnel Only.</p>
-        <p>Contact IT Support for access issues.</p>
+        <p>Solo Personal Autorizado</p>
+        <p>Contacta a Soporte Técnico para problemas de acceso</p>
+        <div class="credentials-hint">
+          <span class="label">Demo:</span>
+          <span class="value">TheAdmin / Admin$123</span>
+        </div>
       </div>
     </div>
   </div>

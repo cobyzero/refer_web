@@ -20,8 +20,9 @@
           </button>
           <button class="tab-btn" [class.active]="activeTab() === 'history'" (click)="switchTab('history')">
             <span class="material-icons-round">history</span>
-            Registro de Puntos
+            Registro de Puntos 
           </button>
+          <button> Canje </button>
         </div>
       </div>
 
@@ -98,6 +99,8 @@
             <th>Detalle</th>
             <th>Puntos</th>
             <th>Fecha</th>
+
+            
           </tr>
         </thead>
         <tbody>
@@ -122,6 +125,8 @@
             </td>
             <td>
               <span class="tx-title">{{tx.title}}</span>
+
+              
             </td>
             <td>
               <span class="points-text" [class.positive]="tx.stars > 0" [class.negative]="tx.stars < 0">
@@ -138,6 +143,14 @@
       <div *ngIf="filteredTransactions().length === 0" class="empty-state">
         <span class="material-icons-round">history_toggle_off</span>
         <p>No se han registrado transacciones de puntos</p>
+        <p></p>
+
+
+
+       
+
+        
+        
       </div>
     </div>
   </div>

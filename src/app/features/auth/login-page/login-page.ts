@@ -27,28 +27,36 @@ export class LoginPageComponent {
   errorMessage = '';
   showPassword = false;
 
+  /** Toggle password visibility */
   togglePassword() {
     this.showPassword = !this.showPassword;
   }
 
+  /** Submit login form */
   onSubmit() {
-    if (this.loginForm.valid) {
-      this.isLoading = true;
-      this.errorMessage = '';
-      
-      const { email, password } = this.loginForm.value;
-      
-      this.authService.login(email!, password!)
-        .pipe(finalize(() => this.isLoading = false))
-        .subscribe({
-          next: () => {
-            this.router.navigate(['/dashboard']);
-          },
-          error: (err) => {
-            this.errorMessage = 'Credenciales inválidas o error de conexión.';
-            console.error(err);
-          }
-        });
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
     }
+
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    const { email, password } = this.loginForm.value;
+
+    this.authService.login(email!, password!)
+      .pipe(finalize(() => (this.isLoading = false)))
+      .subscribe({
+        next: () => {
+          this.router.navigate(['/dashboard']);
+        },
+        error: (err) => {
+          this.errorMessage =
+            err?.error?.message ||
+            err?.message ||
+            'Credenciales inválidas. Inténtalo de nuevo.';
+          console.error('Error de inicio de sesión:', err);
+        }
+      });
   }
 }
