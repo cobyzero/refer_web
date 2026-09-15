@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { API_URL } from '../../core/constants/api';
-import { tap } from 'rxjs';
+import { map, tap, finalize } from 'rxjs';
 
 export interface Reward {
   id: string;
@@ -39,29 +39,44 @@ export class PointsService {
   rewards = signal<Reward[]>([]);
   transactions = signal<StarTransaction[]>([]);
   isLoading = signal(false);
+  /** Last load error (null when ok). The page shows its empty states on error. */
+  error = signal<string | null>(null);
 
   getRewards() {
     this.isLoading.set(true);
-    return this.http.get<Reward[]>(`${this.apiUrl}/rewards`).pipe(
-      tap(rewards => {
-        this.rewards.set(rewards);
-        this.isLoading.set(false);
-      })
+    return this.http.get<Reward[] | null>(`${this.apiUrl}/rewards`).pipe(
+      map(rewards => rewards ?? []),
+      tap({
+        next: (rewards) => {
+          this.rewards.set(rewards);
+          this.error.set(null);
+        },
+        error: (err) => this.error.set(err?.error?.message || 'No se pudieron cargar las recompensas'),
+      }),
+      finalize(() => this.isLoading.set(false))
     );
   }
 
   getTransactions() {
+    // NOTE: backend route is /stars/transactions (admin-only) — no /admin segment.
     this.isLoading.set(true);
-    return this.http.get<StarTransaction[]>(`${this.apiUrl}/admin/transactions`).pipe(
-      tap(txs => {
-        this.transactions.set(txs);
-        this.isLoading.set(false);
-      })
+    return this.http.get<StarTransaction[] | null>(`${this.apiUrl}/transactions`).pipe(
+      map(txs => txs ?? []),
+      tap({
+        next: (txs) => {
+          this.transactions.set(txs);
+          this.error.set(null);
+        },
+        error: (err) => this.error.set(err?.error?.message || 'No se pudieron cargar las transacciones'),
+      }),
+      finalize(() => this.isLoading.set(false))
     );
   }
 
+  /** Emits false when the backend is unreachable so callers can show a hint. */
   createReward(rewardData: Partial<Reward>) {
-    return this.http.post<Reward>(`${this.apiUrl}/admin/rewards`, rewardData).pipe(
+    // NOTE: backend route is POST /stars/rewards (admin-only).
+    return this.http.post<Reward>(`${this.apiUrl}/rewards`, rewardData).pipe(
       tap(newReward => {
         this.rewards.update(prev => [...prev, newReward]);
       })
@@ -69,7 +84,7 @@ export class PointsService {
   }
 
   updateReward(id: string, rewardData: Partial<Reward>) {
-    return this.http.patch<Reward>(`${this.apiUrl}/admin/rewards/${id}`, rewardData).pipe(
+    return this.http.patch<Reward>(`${this.apiUrl}/rewards/${id}`, rewardData).pipe(
       tap(updatedReward => {
         this.rewards.update(prev => prev.map(r => r.id === id ? updatedReward : r));
       })
@@ -77,7 +92,7 @@ export class PointsService {
   }
 
   deleteReward(id: string) {
-    return this.http.delete(`${this.apiUrl}/admin/rewards/${id}`).pipe(
+    return this.http.delete(`${this.apiUrl}/rewards/${id}`).pipe(
       tap(() => {
         this.rewards.update(prev => prev.filter(r => r.id !== id));
       })

@@ -1,0 +1,693 @@
+<div class="create-page">
+  <header class="page-header">
+    <button type="button" class="back-btn" (click)="back()">
+      <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+      {{ t().CREATE_BACK }}
+    </button>
+    <p class="page-eyebrow">Catálogo</p>
+    <h1>{{ pageTitle() }}</h1>
+    <p class="page-sub">{{ pageSub() }}</p>
+  </header>
+
+  @if (isLoadingProduct()) {
+    <div class="loader-container" role="status">
+      <div class="spinner"></div>
+      <p>{{ t().PRODUCTS_LOADING }}</p>
+    </div>
+  } @else if (loadError()) {
+    <div class="banner banner-error" role="alert">
+      <span class="material-icons-round" aria-hidden="true">error_outline</span>
+      <div class="banner-body">
+        <p>{{ loadError() }}</p>
+        <div class="banner-actions">
+          <button type="button" class="btn-secondary-sm" (click)="editingId() && loadProduct(editingId()!)">
+            {{ t().ORDERS_RETRY }}
+          </button>
+          <a routerLink="/products" class="btn-secondary-sm">{{ t().CREATE_BACK }}</a>
+        </div>
+      </div>
+    </div>
+  } @else if (createdName(); as created) {
+    <!-- Success state: explicit, with next actions -->
+    <div class="success-card" role="status">
+      <span class="success-icon material-icons-round" aria-hidden="true">check_circle</span>
+      <h2>{{ successTitle() }}</h2>
+      <p>{{ successSub().replace('{name}', created) }}</p>
+      <div class="success-actions">
+        <a routerLink="/products" class="btn-primary">
+          <span class="material-icons-round" aria-hidden="true">grid_view</span>
+          {{ t().CREATE_GOTO }}
+        </a>
+        @if (isEditMode()) {
+          <button type="button" class="btn-secondary" (click)="continueEditing()">
+            <span class="material-icons-round" aria-hidden="true">edit</span>
+            {{ t().CREATE_KEEP_EDITING }}
+          </button>
+        } @else {
+          <button type="button" class="btn-secondary" (click)="createAnother()">
+            <span class="material-icons-round" aria-hidden="true">add</span>
+            {{ t().CREATE_ANOTHER }}
+          </button>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="create-grid">
+      <form
+        class="create-form"
+        novalidate
+        (ngSubmit)="save()"
+        aria-labelledby="create-form-title"
+      >
+        <h2 id="create-form-title" class="sr-only">{{ pageTitle() }}</h2>
+
+        <!-- Unsaved-changes confirm (inline, never window.confirm) -->
+        @if (exitArmed()) {
+          <div class="banner banner-warn" role="alert">
+            <span class="material-icons-round" aria-hidden="true">warning_amber</span>
+            <div class="banner-body">
+              <p><strong>{{ t().CREATE_UNSAVED }}</strong></p>
+              <div class="banner-actions">
+                <button type="button" class="btn-danger-ghost" (click)="back()">
+                  {{ t().CREATE_EXIT_ANYWAY }}
+                </button>
+                <button type="button" class="btn-secondary-sm" (click)="keepEditing()">
+                  {{ t().CREATE_KEEP_EDITING }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Save error persists with retry -->
+        @if (saveError()) {
+          <div class="banner banner-error" role="alert">
+            <span class="material-icons-round" aria-hidden="true">error_outline</span>
+            <div class="banner-body">
+              <p>{{ saveError() }}</p>
+              <button type="button" class="btn-secondary-sm" (click)="save()">
+                {{ t().ORDERS_RETRY }}
+              </button>
+            </div>
+          </div>
+        }
+
+        <section class="form-card" aria-labelledby="sec-data">
+          <h3 id="sec-data" class="section-title">{{ t().CREATE_SECTION_DATA }}</h3>
+
+          <div class="form-field">
+            <label for="f-name">{{ t().EDIT_LABEL_NAME }} *</label>
+            <input
+              type="text"
+              id="f-name"
+              class="form-input"
+              autocomplete="off"
+              [ngModel]="name()"
+              (ngModelChange)="name.set($event)"
+              name="name"
+              required
+              [attr.aria-invalid]="errors().name ? 'true' : 'false'"
+              [attr.aria-describedby]="errors().name ? 'f-name-err' : null"
+            />
+            @if (errors().name) {
+              <p id="f-name-err" class="field-error" role="alert">{{ errors().name }}</p>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="f-desc">{{ t().EDIT_LABEL_DESCRIPTION }}</label>
+            <textarea
+              id="f-desc"
+              rows="3"
+              class="form-textarea"
+              [ngModel]="description()"
+              (ngModelChange)="description.set($event)"
+              name="description"
+            ></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="f-cat">{{ t().EDIT_LABEL_CATEGORY }} *</label>
+              <select
+                id="f-cat"
+                class="form-input form-select"
+                [ngModel]="categoryId()"
+                (ngModelChange)="categoryId.set($event)"
+                name="category"
+                required
+                [attr.aria-invalid]="errors().category ? 'true' : 'false'"
+                [attr.aria-describedby]="errors().category ? 'f-cat-err' : null"
+              >
+                @for (category of categories(); track category.id) {
+                  <option [value]="category.id">{{ category.name }}</option>
+                }
+              </select>
+              @if (errors().category) {
+                <p id="f-cat-err" class="field-error" role="alert">{{ errors().category }}</p>
+              }
+              <a
+                [routerLink]="['/products/categories/new']"
+                [queryParams]="{ returnTo: returnToPath() }"
+                class="inline-link"
+              >
+                {{ t().CAT_NEW_FROM_PRODUCT }}
+              </a>
+            </div>
+
+            <div class="form-field">
+              <label for="f-price">{{ t().EDIT_LABEL_PRICE }} ({{ currencyCode() }}) *</label>
+              <input
+                type="number"
+                id="f-price"
+                class="form-input"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+                [ngModel]="price()"
+                (ngModelChange)="price.set($event)"
+                name="price"
+                required
+                [attr.aria-invalid]="errors().price ? 'true' : 'false'"
+                [attr.aria-describedby]="errors().price ? 'f-price-err' : null"
+              />
+              @if (errors().price) {
+                <p id="f-price-err" class="field-error" role="alert">{{ errors().price }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="f-stars">{{ t().EDIT_LABEL_STARS }}</label>
+              <input
+                type="number"
+                id="f-stars"
+                class="form-input"
+                min="0"
+                step="1"
+                inputmode="numeric"
+                [ngModel]="starsReward()"
+                (ngModelChange)="starsReward.set($event)"
+                name="stars"
+              />
+            </div>
+
+            <div class="form-field checkbox-field">
+              <input
+                type="checkbox"
+                id="f-avail"
+                [ngModel]="isAvailable()"
+                (ngModelChange)="isAvailable.set($event)"
+                name="available"
+              />
+              <label for="f-avail">{{ t().EDIT_LABEL_AVAILABILITY }}</label>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-card" aria-labelledby="sec-image">
+          <h3 id="sec-image" class="section-title">{{ t().CREATE_SECTION_IMAGE }}</h3>
+
+          <div class="form-field">
+            <label for="f-image">{{ t().EDIT_LABEL_IMAGE }}</label>
+            <input
+              type="url"
+              id="f-image"
+              class="form-input"
+              inputmode="url"
+              placeholder="https://…"
+              [ngModel]="imageUrl()"
+              (ngModelChange)="imageUrl.set($event)"
+              name="imageUrl"
+            />
+          </div>
+
+          <div class="form-field">
+            <span class="label-like" id="upload-label">{{ t().EDIT_LABEL_UPLOAD_IMAGE }}</span>
+            <label class="btn-upload" for="f-upload">
+              <span class="material-icons-round" aria-hidden="true">cloud_upload</span>
+              <span>{{ isUploading() ? t().BTN_UPLOADING : t().EDIT_LABEL_UPLOAD_IMAGE }}</span>
+            </label>
+            <input
+              type="file"
+              id="f-upload"
+              class="sr-file"
+              accept="image/*"
+              aria-labelledby="upload-label"
+              [disabled]="isUploading()"
+              (change)="onFileSelected($event)"
+            />
+            @if (uploadError()) {
+              <p class="field-error" role="alert">{{ uploadError() }}</p>
+            }
+          </div>
+        </section>
+
+        <section class="form-card" aria-labelledby="sec-extras">
+          <h3 id="sec-extras" class="section-title">{{ t().MODAL_EXTRAS }}</h3>
+
+          @if (isEditMode() && existingExtras().length > 0) {
+            <div class="extras-list">
+              @for (ext of existingExtras(); track ext.id) {
+                <div class="extra-pill">
+                  <span class="extra-pill-name">{{ ext.name }}</span>
+                  <span class="extra-pill-price">+{{ ext.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  <button
+                    type="button"
+                    class="extra-remove"
+                    (click)="removeExistingExtra(ext.id)"
+                    title="Eliminar"
+                    [attr.aria-label]="'Eliminar ' + ext.name"
+                  >
+                    <span class="material-icons-round" aria-hidden="true">close</span>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          @if (pendingExtras().length > 0) {
+            <div class="extras-list">
+              @for (ext of pendingExtras(); track $index) {
+                <div class="extra-pill">
+                  <span class="extra-pill-name">{{ ext.name }}</span>
+                  <span class="extra-pill-price">+{{ ext.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  <button
+                    type="button"
+                    class="extra-remove"
+                    (click)="removePendingExtra($index)"
+                    title="Eliminar"
+                    [attr.aria-label]="'Eliminar ' + ext.name"
+                  >
+                    <span class="material-icons-round" aria-hidden="true">close</span>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="add-extra-row">
+            <select
+              class="form-input form-select"
+              [ngModel]="extraPick()"
+              (ngModelChange)="extraPick.set($event)"
+              name="extraPick"
+              [attr.aria-label]="t().MODAL_EXTRAS"
+            >
+              <option value="">{{ t().EXTRAS_PICK_EXISTING }}</option>
+              @for (e of pickableExtras(); track e.id) {
+                <option [value]="e.id">{{ e.name }} (+{{ e.price | currency:currencyCode():'symbol':'1.2-2' }})</option>
+              }
+            </select>
+            <button
+              type="button"
+              class="btn-add-extra"
+              (click)="addPickedExtra()"
+              [disabled]="!extraPick()"
+            >
+              <span class="material-icons-round" aria-hidden="true">add</span>
+              {{ t().EDIT_BTN_ADD_EXTRA }}
+            </button>
+          </div>
+          <button
+            type="button"
+            class="inline-link"
+            (click)="showNewExtra.set(!showNewExtra())"
+            [attr.aria-expanded]="showNewExtra()"
+            aria-controls="new-extra-form"
+          >
+            {{ t().EXTRAS_NEW_FROM_PRODUCT }}
+          </button>
+          @if (showNewExtra()) {
+            <div class="add-extra-row" id="new-extra-form">
+              <input
+                type="text"
+                class="form-input"
+                [placeholder]="t().LABEL_EXTRA_NAME"
+                [ngModel]="extraName()"
+                (ngModelChange)="extraName.set($event)"
+                name="extraName"
+                [attr.aria-label]="t().LABEL_EXTRA_NAME"
+              />
+              <input
+                type="number"
+                class="form-input"
+                min="0"
+                step="0.05"
+                inputmode="decimal"
+                [placeholder]="t().LABEL_EXTRA_PRICE + ' (' + currencyCode() + ')'"
+                [ngModel]="extraPrice()"
+                (ngModelChange)="extraPrice.set($event)"
+                name="extraPrice"
+                [attr.aria-label]="t().LABEL_EXTRA_PRICE"
+                (keyup.enter)="addPendingExtra()"
+              />
+              <button
+                type="button"
+                class="btn-add-extra"
+                (click)="addPendingExtra()"
+                [disabled]="!extraName().trim()"
+              >
+                <span class="material-icons-round" aria-hidden="true">add</span>
+                {{ t().EDIT_BTN_ADD_EXTRA }}
+              </button>
+            </div>
+          }
+        </section>
+
+        <section class="form-card" aria-labelledby="sec-sizes">
+          <h3 id="sec-sizes" class="section-title">{{ t().SIZE_TITLE }}</h3>
+          <p class="section-hint">{{ t().SIZE_HINT }}</p>
+
+          @if (isEditMode() && existingSizes().length > 0) {
+            <div class="extras-list">
+              @for (size of existingSizes(); track size.sizeId) {
+                <div class="extra-pill">
+                  <span class="extra-pill-name">{{ size.name }}</span>
+                  <span class="extra-pill-price">+{{ size.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  <button
+                    type="button"
+                    class="extra-remove"
+                    (click)="removeExistingSize(size.sizeId)"
+                    title="Eliminar"
+                    [attr.aria-label]="'Eliminar ' + size.name"
+                  >
+                    <span class="material-icons-round" aria-hidden="true">close</span>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          @if (pendingSizes().length > 0) {
+            <div class="extras-list">
+              @for (size of pendingSizes(); track $index) {
+                <div class="extra-pill">
+                  <span class="extra-pill-name">{{ size.name }}</span>
+                  <span class="extra-pill-price">+{{ size.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  <button
+                    type="button"
+                    class="extra-remove"
+                    (click)="removePendingSize($index)"
+                    title="Eliminar"
+                    [attr.aria-label]="'Eliminar ' + size.name"
+                  >
+                    <span class="material-icons-round" aria-hidden="true">close</span>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="add-extra-row">
+            <select
+              class="form-input form-select"
+              [ngModel]="sizePick()"
+              (ngModelChange)="sizePick.set($event); sizeFormError.set(null)"
+              name="sizePick"
+              [attr.aria-label]="t().SIZE_TITLE"
+            >
+              <option value="">{{ t().SIZE_PICK }}</option>
+              @for (s of availableSizes(); track s.id) {
+                <option [value]="s.id">{{ s.name }}</option>
+              }
+            </select>
+            <input
+              type="number"
+              class="form-input"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              [placeholder]="t().EDIT_LABEL_PRICE + ' (' + currencyCode() + ')'"
+              [ngModel]="sizePrice()"
+              (ngModelChange)="sizePrice.set($event)"
+              name="sizePrice"
+              [attr.aria-label]="t().EDIT_LABEL_PRICE"
+              (keyup.enter)="addPendingSize()"
+            />
+            <button
+              type="button"
+              class="btn-add-extra"
+              (click)="addPendingSize()"
+              [disabled]="!sizePick()"
+            >
+              <span class="material-icons-round" aria-hidden="true">add</span>
+              {{ t().SIZE_ADD }}
+            </button>
+          </div>
+          @if (sizeFormError()) {
+            <p class="field-error" role="alert">{{ sizeFormError() }}</p>
+          }
+          <button
+            type="button"
+            class="inline-link"
+            (click)="showNewSize.set(!showNewSize())"
+            [attr.aria-expanded]="showNewSize()"
+            aria-controls="new-size-form"
+          >
+            {{ t().SIZE_NEW_FROM_PRODUCT }}
+          </button>
+          @if (showNewSize()) {
+            <div class="add-extra-row" id="new-size-form">
+              <input
+                type="text"
+                class="form-input"
+                maxlength="40"
+                [placeholder]="t().SIZE_NEW_PH"
+                [ngModel]="newSizeName()"
+                (ngModelChange)="newSizeName.set($event); newSizeTouched.set(false)"
+                name="newSizeName"
+                [attr.aria-label]="t().SIZE_NEW"
+                (keyup.enter)="createNewSize()"
+              />
+              <button
+                type="button"
+                class="btn-add-extra"
+                (click)="createNewSize()"
+                [disabled]="isCreatingSize() || !newSizeName().trim()"
+              >
+                <span class="material-icons-round" aria-hidden="true">add</span>
+                {{ isCreatingSize() ? t().BTN_UPLOADING : t().SIZE_CREATE }}
+              </button>
+            </div>
+            @if (newSizeTouched() && newSizeError()) {
+              <p class="field-error" role="alert">{{ newSizeError() }}</p>
+            }
+          }
+        </section>
+
+        <section class="form-card" aria-labelledby="sec-variants">
+          <h3 id="sec-variants" class="section-title">{{ t().VARIANTS_TITLE }}</h3>
+          <p class="section-hint">{{ t().VARIANTS_SUB }}</p>
+
+          @if (isEditMode() && existingVariants().length > 0) {
+            <div class="extras-list">
+              @for (variant of existingVariants(); track variant.id) {
+                <div class="extra-pill">
+                  <span class="extra-pill-name">{{ variant.name }}</span>
+                  <span class="extra-pill-price">+{{ variant.priceAdjustment | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  <button
+                    type="button"
+                    class="extra-remove"
+                    (click)="removeExistingVariant(variant.id)"
+                    title="Eliminar"
+                    [attr.aria-label]="'Eliminar ' + variant.name"
+                  >
+                    <span class="material-icons-round" aria-hidden="true">close</span>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          @if (pendingVariants().length > 0) {
+            <div class="extras-list">
+              @for (variant of pendingVariants(); track $index) {
+                <div class="extra-pill">
+                  <span class="extra-pill-name">{{ variant.name }}</span>
+                  <span class="extra-pill-price">+{{ variant.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  <button
+                    type="button"
+                    class="extra-remove"
+                    (click)="removePendingVariant($index)"
+                    title="Eliminar"
+                    [attr.aria-label]="'Eliminar ' + variant.name"
+                  >
+                    <span class="material-icons-round" aria-hidden="true">close</span>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="add-extra-row">
+            <select
+              class="form-input form-select"
+              [ngModel]="variantPick()"
+              (ngModelChange)="variantPick.set($event)"
+              name="variantPick"
+              [attr.aria-label]="t().VARIANTS_TITLE"
+            >
+              <option value="">{{ t().VARIANTS_PICK_EXISTING }}</option>
+              @for (v of pickableVariants(); track v.id) {
+                <option [value]="v.id">{{ v.name }} (+{{ v.price | currency:currencyCode():'symbol':'1.2-2' }})</option>
+              }
+            </select>
+            <button
+              type="button"
+              class="btn-add-extra"
+              (click)="addPickedVariant()"
+              [disabled]="!variantPick()"
+            >
+              <span class="material-icons-round" aria-hidden="true">add</span>
+              {{ t().VARIANTS_ADD }}
+            </button>
+          </div>
+          <button
+            type="button"
+            class="inline-link"
+            (click)="showNewVariant.set(!showNewVariant())"
+            [attr.aria-expanded]="showNewVariant()"
+            aria-controls="new-variant-form"
+          >
+            {{ t().VARIANTS_NEW_FROM_PRODUCT }}
+          </button>
+          @if (showNewVariant()) {
+            <div class="add-extra-row" id="new-variant-form">
+              <input
+                type="text"
+                class="form-input"
+                maxlength="60"
+                [placeholder]="t().VARIANTS_NAME_PH"
+                [ngModel]="variantName()"
+                (ngModelChange)="variantName.set($event)"
+                name="variantName"
+                [attr.aria-label]="t().VARIANTS_TITLE"
+              />
+              <input
+                type="number"
+                class="form-input"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+                [placeholder]="t().EDIT_LABEL_PRICE + ' (' + currencyCode() + ')'"
+                [ngModel]="variantPrice()"
+                (ngModelChange)="variantPrice.set($event)"
+                name="variantPrice"
+                [attr.aria-label]="t().EDIT_LABEL_PRICE"
+                (keyup.enter)="addPendingVariant()"
+              />
+              <button
+                type="button"
+                class="btn-add-extra"
+                (click)="addPendingVariant()"
+                [disabled]="!variantName().trim()"
+              >
+                <span class="material-icons-round" aria-hidden="true">add</span>
+                {{ t().VARIANTS_ADD }}
+              </button>
+            </div>
+          }
+        </section>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="back()">
+            {{ t().EDIT_BTN_CANCEL }}
+          </button>
+          <button
+            type="submit"
+            class="btn-primary"
+            [disabled]="isSaving() || isUploading()"
+            [attr.aria-busy]="isSaving()"
+          >
+            @if (isSaving()) {
+              <span class="loader" aria-hidden="true"></span>
+              {{ savingLabel() }}
+            } @else {
+              <span class="material-icons-round" aria-hidden="true">check</span>
+              {{ submitLabel() }}
+            }
+          </button>
+        </div>
+      </form>
+
+      <!-- Live preview: decorative mirror, hidden from AT to avoid chatter -->
+      <aside class="preview-col" aria-hidden="true">
+        <div class="preview-sticky">
+          <p class="preview-eyebrow">{{ t().CREATE_PREVIEW }}</p>
+          <div class="preview-card">
+            <div class="preview-media">
+              @if (previewUrl()) {
+                <img
+                  [src]="previewUrl()"
+                  alt=""
+                  tabindex="-1"
+                  (error)="hideImg($event)"
+                />
+              } @else {
+                <span class="material-icons-round preview-placeholder">local_cafe</span>
+              }
+              @if (displayStars() > 0) {
+                <span class="preview-stars">+{{ displayStars() }}</span>
+              }
+            </div>
+            <div class="preview-body">
+              <p class="preview-name">{{ name().trim() || '…' }}</p>
+              <p class="preview-desc">{{ description().trim() || '…' }}</p>
+              @if (isEditMode() && existingExtras().length > 0) {
+                <div class="preview-extras">
+                  @for (ext of existingExtras(); track ext.id) {
+                    <span class="preview-extra-pill">{{ ext.name }} · +{{ ext.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  }
+                </div>
+              }
+              @if (pendingExtras().length > 0) {
+                <div class="preview-extras">
+                  @for (ext of pendingExtras(); track $index) {
+                    <span class="preview-extra-pill">{{ ext.name }} · +{{ ext.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  }
+                </div>
+              }
+              @if (isEditMode() && existingVariants().length > 0) {
+                <div class="preview-extras">
+                  @for (variant of existingVariants(); track variant.id) {
+                    <span class="preview-extra-pill">{{ variant.name }} · +{{ variant.priceAdjustment | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  }
+                </div>
+              }
+              @if (pendingVariants().length > 0) {
+                <div class="preview-extras">
+                  @for (variant of pendingVariants(); track $index) {
+                    <span class="preview-extra-pill">{{ variant.name }} · +{{ variant.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  }
+                </div>
+              }
+              @if (pendingSizes().length > 0) {
+                <div class="preview-extras">
+                  @for (size of pendingSizes(); track $index) {
+                    <span class="preview-extra-pill">{{ size.name }} · +{{ size.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  }
+                </div>
+              }
+              @if (isEditMode() && existingSizes().length > 0) {
+                <div class="preview-extras">
+                  @for (size of existingSizes(); track size.sizeId) {
+                    <span class="preview-extra-pill">{{ size.name }} · +{{ size.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  }
+                </div>
+              }
+              <div class="preview-foot">
+                <span class="preview-price">{{ displayPrice() | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                <span
+                  class="preview-avail"
+                  [class.off]="!isAvailable()"
+                >{{ isAvailable() ? t().MODAL_AVAILABLE : t().MODAL_UNAVAILABLE }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  }
+</div>

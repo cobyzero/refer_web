@@ -1,7 +1,19 @@
 <header class="navbar">
-  <div class="search-bar">
-    <span class="material-icons-round">search</span>
-    <input type="text" [placeholder]="t().NAVBAR_SEARCH">
+  <div class="navbar-start">
+    <button
+      type="button"
+      class="menu-btn"
+      (click)="sidebar.toggle()"
+      [attr.aria-expanded]="sidebar.expanded()"
+      aria-controls="app-sidebar"
+      [attr.aria-label]="t().NAVBAR_MENU"
+    >
+      <span class="material-icons-round" aria-hidden="true">menu</span>
+    </button>
+    <div class="search-bar">
+      <span class="material-icons-round">search</span>
+      <input type="text" [placeholder]="t().NAVBAR_SEARCH" />
+    </div>
   </div>
 
   <div class="navbar-actions">
@@ -27,10 +39,86 @@
 
     <div class="divider"></div>
 
-    <button class="action-btn">
-      <span class="material-icons-round">notifications</span>
-      <span class="badge"></span>
-    </button>
+    <!-- Notification center -->
+    <div class="notif-container">
+      <button
+        type="button"
+        class="action-btn notif-btn"
+        (click)="toggleNotif()"
+        [attr.aria-expanded]="showNotifMenu"
+        [attr.aria-label]="showNotifMenu ? t().NOTIF_CLOSE : t().NOTIF_OPEN"
+      >
+        <span class="material-icons-round" aria-hidden="true">notifications</span>
+        @if (unreadCount() > 0) {
+          <span class="badge badge-count" aria-hidden="true">{{ badgeText() }}</span>
+        }
+      </button>
+
+      @if (showNotifMenu) {
+        <div class="notif-backdrop" (click)="closeNotif()" aria-hidden="true"></div>
+        <section
+          class="notif-panel"
+          role="menu"
+          [attr.aria-label]="t().NOTIF_TITLE"
+        >
+          <div class="notif-header">
+            <h2 class="notif-title">{{ t().NOTIF_TITLE }}</h2>
+            @if (notifications().length > 0) {
+              <div class="notif-header-actions">
+                <button
+                  type="button"
+                  class="notif-link"
+                  [disabled]="unreadCount() === 0"
+                  (click)="markAllRead()"
+                >
+                  {{ t().NOTIF_MARK_ALL }}
+                </button>
+                <button type="button" class="notif-link danger" (click)="clearAll()">
+                  {{ t().NOTIF_CLEAR }}
+                </button>
+              </div>
+            }
+          </div>
+
+          @if (!notifications().length) {
+            <div class="notif-empty">
+              <span class="material-icons-round" aria-hidden="true">notifications_none</span>
+              <p><strong>{{ t().NOTIF_EMPTY }}</strong></p>
+              <p class="notif-empty-sub">{{ t().NOTIF_EMPTY_SUB }}</p>
+            </div>
+          } @else {
+            <ul class="notif-list">
+              @for (n of notifications(); track n.id) {
+                <li>
+                  <button
+                    type="button"
+                    class="notif-item"
+                    [class.unread]="!n.read"
+                    [class.tone-new]="n.type === 'new'"
+                    [class.tone-priority]="n.type === 'priority'"
+                    [class.tone-overdue]="n.type === 'overdue'"
+                    (click)="openNotification(n)"
+                    [attr.aria-label]="notifTitle(n) + ': ' + notifBody(n)"
+                  >
+                    <span class="notif-icon" aria-hidden="true">
+                      <span class="material-icons-round">{{ notifIcon(n.type) }}</span>
+                    </span>
+                    <span class="notif-body">
+                      <span class="notif-item-title">{{ notifTitle(n) }}</span>
+                      <span class="notif-text">{{ notifBody(n) }}</span>
+                      <span class="notif-time">{{ timeAgo(n.createdAt) }}</span>
+                    </span>
+                    @if (!n.read) {
+                      <span class="notif-dot" aria-hidden="true"></span>
+                    }
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+    </div>
     <button class="action-btn">
       <span class="material-icons-round">help_outline</span>
     </button>

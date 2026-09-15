@@ -1,71 +1,129 @@
 <div class="dashboard">
   <header class="page-header">
-    <h1>Resumen del Sistema</h1>
-    <p>Bienvenido de nuevo. Aquí tienes un vistazo de hoy.</p>
+    <div class="header-text">
+      <p class="page-eyebrow">Panel general</p>
+      <h1>Resumen del sistema</h1>
+      <p class="page-sub">{{ todayLabel }} · Vistazo de hoy.</p>
+    </div>
+    <button
+      type="button"
+      class="btn-refresh"
+      (click)="refresh()"
+      [disabled]="isLoading()"
+      [attr.aria-busy]="isLoading()"
+    >
+      <span
+        class="material-icons-round"
+        [class.spinning]="isLoading()"
+        aria-hidden="true"
+        >refresh</span
+      >
+      {{ isRefreshing() ? 'Actualizando…' : 'Actualizar' }}
+    </button>
   </header>
 
-  <!-- Loading State -->
-  <div *ngIf="isLoading() && !summary()" class="loading-overlay">
-    <div class="skeleton-stats">
-      <div *ngFor="let i of [1,2,3,4]" class="skeleton-card"></div>
+  <!-- Error (only when there is nothing to show yet) -->
+  <div *ngIf="error() && !summary()" class="banner banner-error" role="alert">
+    <span class="material-icons-round" aria-hidden="true">error_outline</span>
+    <div class="banner-body">
+      <p><strong>No pudimos cargar el resumen.</strong> {{ error() }}</p>
+      <button type="button" class="btn-retry" (click)="refresh()">Reintentar</button>
     </div>
   </div>
 
-  <div *ngIf="summary()" class="stats-grid">
-    <div *ngFor="let stat of summary()?.stats" class="stat-card">
-      <div class="stat-header">
-        <div class="stat-icon" [ngClass]="stat.color">
-          <span class="material-icons-round">{{stat.icon}}</span>
+  <!-- Loading — first visit, no cached data -->
+  <div
+    *ngIf="isLoading() && !summary() && !error()"
+    class="loading-block"
+    role="status"
+    aria-label="Cargando resumen del sistema"
+  >
+    <ul class="stats-grid" aria-hidden="true">
+      <li *ngFor="let i of [1, 2, 3, 4]" class="skeleton-card"></li>
+    </ul>
+    <div class="skeleton-row" aria-hidden="true"></div>
+  </div>
+
+  <ng-container *ngIf="summary() as data">
+    <!-- Ledger band -->
+    <section aria-label="Indicadores principales">
+      <ul class="stats-grid">
+        <li *ngFor="let stat of data.stats" class="stat-card">
+          <div class="stat-top">
+            <span class="stat-icon" aria-hidden="true">
+              <span class="material-icons-round">{{ stat.icon }}</span>
+            </span>
+            <span
+              *ngIf="stat.change"
+              class="stat-trend"
+              [class.up]="isPositive(stat.change)"
+              [class.down]="!isPositive(stat.change)"
+              [attr.aria-label]="trendLabel(stat)"
+            >
+              <span
+                class="material-icons-round"
+                aria-hidden="true"
+                >{{ isPositive(stat.change) ? 'trending_up' : 'trending_down' }}</span
+              >
+              <span aria-hidden="true">{{ stat.change }}</span>
+            </span>
+          </div>
+          <p class="stat-value">{{ stat.value }}</p>
+          <p class="stat-label">{{ stat.label }}</p>
+        </li>
+      </ul>
+    </section>
+
+    <div class="dashboard-content">
+      <!-- Quick actions replace the fake chart: real navigation -->
+      <section class="panel" aria-labelledby="qa-title">
+        <div class="section-header">
+          <h2 id="qa-title">Accesos directos</h2>
         </div>
-        <div class="stat-trend" [ngClass]="stat.change.startsWith('+') ? 'up' : 'down'">
-          <span class="material-icons-round">{{stat.change.startsWith('+') ? 'trending_up' : 'trending_down'}}</span>
-          {{stat.change}}
+        <ul class="qa-list">
+          <li *ngFor="let action of quickActions">
+            <a [routerLink]="action.route" class="qa-item">
+              <span class="qa-icon" aria-hidden="true">
+                <span class="material-icons-round">{{ action.icon }}</span>
+              </span>
+              <span class="qa-text">
+                <span class="qa-label">{{ action.label }}</span>
+                <span class="qa-hint">{{ action.hint }}</span>
+              </span>
+              <span class="material-icons-round qa-arrow" aria-hidden="true"
+                >arrow_forward</span
+              >
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <section class="panel" aria-labelledby="activity-title">
+        <div class="section-header">
+          <h2 id="activity-title">Actividad reciente</h2>
+          <span *ngIf="isRefreshing()" class="live-hint" role="status">
+            <span class="live-dot" aria-hidden="true"></span>Actualizando…
+          </span>
         </div>
-      </div>
-      <div class="stat-main">
-        <h3>{{stat.value}}</h3>
-        <p>{{stat.label}}</p>
-      </div>
+
+        <ul *ngIf="activity().length" class="activity-list">
+          <li *ngFor="let item of activity()" class="activity-item">
+            <span class="avatar" aria-hidden="true">{{ item.avatar }}</span>
+            <div class="activity-info">
+              <p class="activity-user">{{ item.user }}</p>
+              <p class="activity-action">{{ item.action }}</p>
+            </div>
+            <span class="activity-time">{{ item.time }}</span>
+          </li>
+        </ul>
+
+        <div *ngIf="!activity().length" class="empty-state">
+          <span class="material-icons-round" aria-hidden="true">coffee</span>
+          <p><strong>Sin actividad todavía.</strong></p>
+          <p>Los pedidos y movimientos del equipo aparecerán aquí.</p>
+          <a routerLink="/orders" class="btn-retry">Ver pedidos</a>
+        </div>
+      </section>
     </div>
-  </div>
-
-  <div *ngIf="summary()" class="dashboard-content">
-    <section class="activity-section card-container">
-      <div class="section-header">
-        <h2>Actividad Reciente</h2>
-        <button class="btn-ghost">Ver todo</button>
-      </div>
-      
-      <div class="activity-list">
-        <div *ngFor="let item of summary()?.recentActivity" class="activity-item">
-          <div class="avatar-wrapper">
-            <div class="avatar">{{item.avatar}}</div>
-            <div class="status-dot"></div>
-          </div>
-          <div class="activity-info">
-            <h4>{{item.user}}</h4>
-            <p>{{item.action}}</p>
-          </div>
-          <span class="activity-time">{{item.time}}</span>
-        </div>
-        <div *ngIf="summary()?.recentActivity?.length === 0" class="empty-state">
-           <p>No hay actividad reciente</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="chart-card card-container">
-      <div class="section-header">
-        <h2>Crecimiento de Puntos</h2>
-      </div>
-      
-      <div class="chart-container">
-        <div class="placeholder-visual">
-          <span class="material-icons-round">analytics</span>
-          <p>Análisis en Tiempo Real</p>
-          <p class="subtitle">Sincronizando los últimos datos de café...</p>
-        </div>
-      </div>
-    </section>
-  </div>
+  </ng-container>
 </div>

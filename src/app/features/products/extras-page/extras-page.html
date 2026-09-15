@@ -1,0 +1,137 @@
+<div class="manage-page">
+  <header class="page-header">
+    @if (showBack()) {
+      <button type="button" class="back-btn" (click)="back()">
+        <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+        {{ t().CAT_BACK }}
+      </button>
+    }
+    <p class="page-eyebrow">Catálogo</p>
+    <h1>{{ t().EXTRAS_TITLE }}</h1>
+    <p class="page-sub">{{ t().EXTRAS_SUB }}</p>
+  </header>
+
+  <form class="create-card" novalidate (ngSubmit)="create()" aria-label="{{ t().EXTRAS_TITLE }}">
+    <div class="create-row two-cols">
+      <div class="form-field">
+        <label for="extra-product">{{ t().MGR_PRODUCT }} *</label>
+        <select
+          id="extra-product"
+          class="form-input form-select"
+          [ngModel]="productPick()"
+          (ngModelChange)="productPick.set($event)"
+          name="extraProduct"
+          required
+        >
+          <option value="">{{ t().EXTRAS_PICK_PH }}</option>
+          @for (product of products(); track product.id) {
+            <option [value]="product.id">{{ product.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="extra-name">{{ t().MGR_NAME }} *</label>
+        <input
+          type="text"
+          id="extra-name"
+          class="form-input"
+          autocomplete="off"
+          maxlength="60"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+          name="extraName"
+          required
+        />
+      </div>
+      <div class="form-field">
+        <label for="extra-price">{{ t().MGR_PRICE }} ({{ currencyCode() }})</label>
+        <input
+          type="number"
+          id="extra-price"
+          class="form-input"
+          min="0"
+          step="0.05"
+          inputmode="decimal"
+          [ngModel]="price()"
+          (ngModelChange)="price.set($event)"
+          name="extraPrice"
+        />
+      </div>
+      <button
+        type="submit"
+        class="btn-primary"
+        [disabled]="isCreating()"
+        [attr.aria-busy]="isCreating()"
+      >
+        @if (isCreating()) {
+          <span class="loader" aria-hidden="true"></span>
+          {{ t().SETTINGS_SAVING }}
+        } @else {
+          <span class="material-icons-round" aria-hidden="true">add</span>
+          {{ t().MGR_ADD }}
+        }
+      </button>
+    </div>
+    @if (formErrorText()) {
+      <p class="field-error" role="alert">{{ formErrorText() }}</p>
+    }
+    @if (formError()) {
+      <p class="field-error" role="alert">{{ formError() }}</p>
+    }
+  </form>
+
+  @if (actionError()) {
+    <div class="banner banner-error" role="alert">
+      <span class="material-icons-round" aria-hidden="true">error_outline</span>
+      <div class="banner-body">
+        <p>{{ actionError() }}</p>
+        <button type="button" class="btn-retry" (click)="actionError.set(null)">OK</button>
+      </div>
+    </div>
+  }
+
+  @if (isLoading() && !items().length) {
+    <div class="loading-block" role="status" [attr.aria-label]="t().MGR_LOADING">
+      <div class="skeleton-row" aria-hidden="true"></div>
+      <div class="skeleton-row" aria-hidden="true"></div>
+    </div>
+  } @else if (loadError() && !items().length) {
+    <div class="banner banner-error" role="alert">
+      <span class="material-icons-round" aria-hidden="true">error_outline</span>
+      <div class="banner-body">
+        <p>{{ loadError() }}</p>
+        <button type="button" class="btn-retry" (click)="load()">{{ t().ORDERS_RETRY }}</button>
+      </div>
+    </div>
+  } @else if (!items().length) {
+    <div class="empty-state">
+      <span class="material-icons-round" aria-hidden="true">add_circle_outline</span>
+      <p><strong>{{ t().MGR_EMPTY }}</strong></p>
+      <p>{{ t().EXTRAS_EMPTY_SUB }}</p>
+    </div>
+  } @else {
+    <ul class="rows-list">
+      @for (item of items(); track item.id) {
+        <li>
+          <span class="row-icon" aria-hidden="true">
+            <span class="material-icons-round">add_circle_outline</span>
+          </span>
+          <span class="row-text">
+            <span class="row-name">{{ item.name }}</span>
+            <span class="row-sub">{{ item.productName }}</span>
+          </span>
+          <span class="row-price">+{{ item.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+          <button
+            type="button"
+            class="icon-btn danger"
+            [class.armed]="deleteArmedId() === item.id"
+            (click)="askDelete(item)"
+            [attr.aria-label]="(deleteArmedId() === item.id ? t().MGR_CONFIRM : t().MGR_DELETE) + ': ' + item.name"
+          >
+            <span class="material-icons-round" aria-hidden="true">delete</span>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

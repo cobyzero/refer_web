@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { API_URL } from '../../core/constants/api';
-import { tap } from 'rxjs';
+import { finalize, tap } from 'rxjs';
 
 export interface DashboardStat {
   label: string;
@@ -28,17 +28,29 @@ export interface AdminSummary {
 })
 export class DashboardService {
   private http = inject(HttpClient);
-  
+
   summary = signal<AdminSummary | null>(null);
   isLoading = signal(false);
+  error = signal<string | null>(null);
 
   getAdminSummary() {
     this.isLoading.set(true);
+    this.error.set(null);
     return this.http.get<AdminSummary>(`${API_URL}/dashboard/admin/summary`).pipe(
-      tap(data => {
-        this.summary.set(data);
-        this.isLoading.set(false);
-      })
+      tap({
+        next: (data) => this.summary.set(data),
+        error: (err) =>
+          this.error.set(
+            err?.error?.message ||
+              'No pudimos cargar el resumen. Revisa tu conexión e inténtalo de nuevo.'
+          ),
+      }),
+      // Always release the loading state — success or failure.
+      finalize(() => this.isLoading.set(false))
     );
+  }
+
+  retry() {
+    this.getAdminSummary().subscribe();
   }
 }

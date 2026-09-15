@@ -1,0 +1,242 @@
+<div class="settings-page">
+  <header class="page-header">
+    <p class="page-eyebrow">Sistema</p>
+    <h1>{{ t().SETTINGS_TITLE }}</h1>
+    <p class="page-sub">{{ t().SETTINGS_SUB }}</p>
+  </header>
+
+  @if (saved()) {
+    <div class="banner banner-ok" role="status">
+      <span class="material-icons-round" aria-hidden="true">check_circle</span>
+      <p>{{ t().SETTINGS_SAVED }}</p>
+    </div>
+  }
+
+  @if (saveError()) {
+    <div class="banner banner-error" role="alert">
+      <span class="material-icons-round" aria-hidden="true">error_outline</span>
+      <div class="banner-body">
+        <p>{{ saveError() }}</p>
+        <button type="button" class="btn-secondary-sm" (click)="save()">
+          {{ t().ORDERS_RETRY }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <section class="panel" aria-labelledby="currency-title">
+    <div class="panel-head">
+      <h2 id="currency-title">{{ t().SETTINGS_CURRENCY_TITLE }}</h2>
+      <p>{{ t().SETTINGS_CURRENCY_HINT }}</p>
+    </div>
+
+    <div class="currency-grid" role="radiogroup" aria-labelledby="currency-title">
+      @for (opt of options; track opt.code) {
+        <label class="currency-option" [class.selected]="selected() === opt.code">
+          <input
+            type="radio"
+            name="currency"
+            class="sr-radio"
+            [value]="opt.code"
+            [ngModel]="selected()"
+            (ngModelChange)="selected.set($event); saved.set(false)"
+          />
+          <span class="currency-symbol" aria-hidden="true">{{ opt.symbol }}</span>
+          <span class="currency-text">
+            <span class="currency-code">{{ opt.code }}</span>
+            <span class="currency-name">{{ optionName(opt.code) }}</span>
+          </span>
+          <span
+            class="currency-check material-icons-round"
+            aria-hidden="true"
+          >{{ selected() === opt.code ? 'check_circle' : 'radio_button_unchecked' }}</span>
+        </label>
+      }
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="tax-title">
+    <div class="panel-head">
+      <h2 id="tax-title">{{ t().SETTINGS_TAX_TITLE }}</h2>
+      <p>{{ t().SETTINGS_TAX_HINT }}</p>
+    </div>
+
+    <label class="switch-row">
+      <button
+        type="button"
+        role="switch"
+        class="switch"
+        [class.on]="taxEnabledSel()"
+        [attr.aria-checked]="taxEnabledSel()"
+        [attr.aria-label]="t().SETTINGS_TAX_ENABLE"
+        (click)="taxEnabledSel.set(!taxEnabledSel()); saved.set(false)"
+      >
+        <span class="switch-thumb" aria-hidden="true"></span>
+      </button>
+      <span class="switch-text">
+        <span class="switch-label">{{ t().SETTINGS_TAX_ENABLE }}</span>
+      </span>
+    </label>
+
+    <div class="form-field">
+      <label for="f-tax-rate">{{ t().SETTINGS_TAX_RATE_LABEL }}</label>
+      <div class="rate-input-wrap">
+        <input
+          type="number"
+          id="f-tax-rate"
+          class="form-input rate-input"
+          min="0"
+          max="100"
+          step="0.5"
+          inputmode="decimal"
+          [ngModel]="taxRatePct()"
+          (ngModelChange)="taxRatePct.set($event); saved.set(false)"
+          name="taxRate"
+          [disabled]="!taxEnabledSel()"
+          [attr.aria-invalid]="rateError() ? 'true' : 'false'"
+          [attr.aria-describedby]="rateError() ? 'f-tax-rate-err' : null"
+        />
+        <span class="rate-suffix" aria-hidden="true">%</span>
+      </div>
+      @if (rateError()) {
+        <p id="f-tax-rate-err" class="field-error" role="alert">{{ rateError() }}</p>
+      }
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="version-title">
+    <div class="panel-head">
+      <h2 id="version-title">{{ t().SETTINGS_VERSION_TITLE }}</h2>
+      <p>{{ t().SETTINGS_VERSION_HINT }}</p>
+    </div>
+
+    <div class="form-field">
+      <label for="f-app-version">{{ t().SETTINGS_VERSION_LABEL }}</label>
+      <div class="rate-input-wrap">
+        <input
+          type="text"
+          id="f-app-version"
+          class="form-input rate-input"
+          inputmode="decimal"
+          placeholder="1.0.0"
+          autocomplete="off"
+          spellcheck="false"
+          [ngModel]="versionSel()"
+          (ngModelChange)="versionSel.set($event); saved.set(false)"
+          name="appVersion"
+          [attr.aria-invalid]="versionError() ? 'true' : 'false'"
+          [attr.aria-describedby]="versionError() ? 'f-app-version-err' : null"
+        />
+      </div>
+      @if (versionError()) {
+        <p id="f-app-version-err" class="field-error" role="alert">{{ versionError() }}</p>
+      }
+    </div>
+
+    <div class="form-field">
+      <label for="f-app-min-version">{{ t().SETTINGS_MIN_VERSION_LABEL }}</label>
+      <div class="rate-input-wrap">
+        <input
+          type="text"
+          id="f-app-min-version"
+          class="form-input rate-input"
+          inputmode="decimal"
+          placeholder="1.0.0"
+          autocomplete="off"
+          spellcheck="false"
+          [ngModel]="minVersionSel()"
+          (ngModelChange)="minVersionSel.set($event); saved.set(false)"
+          name="appMinVersion"
+          [attr.aria-invalid]="minVersionError() ? 'true' : 'false'"
+          [attr.aria-describedby]="minVersionError() ? 'f-app-min-version-err' : null"
+        />
+      </div>
+      @if (minVersionError()) {
+        <p id="f-app-min-version-err" class="field-error" role="alert">{{ minVersionError() }}</p>
+      }
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="fee-title">
+    <div class="panel-head">
+      <h2 id="fee-title">{{ t().SETTINGS_FEE_TITLE }}</h2>
+      <p>{{ t().SETTINGS_FEE_HINT }}</p>
+    </div>
+
+    <div class="form-field">
+      <label for="f-fee-rate">{{ t().SETTINGS_FEE_RATE_LABEL }}</label>
+      <div class="rate-input-wrap">
+        <input
+          type="number"
+          id="f-fee-rate"
+          class="form-input rate-input"
+          min="0"
+          max="100"
+          step="0.5"
+          inputmode="decimal"
+          [ngModel]="feePct()"
+          (ngModelChange)="feePct.set($event); saved.set(false)"
+          name="serviceFeeRate"
+          [attr.aria-invalid]="feeError() ? 'true' : 'false'"
+          [attr.aria-describedby]="feeError() ? 'f-fee-rate-err' : null"
+        />
+        <span class="rate-suffix" aria-hidden="true">%</span>
+      </div>
+      @if (feeError()) {
+        <p id="f-fee-rate-err" class="field-error" role="alert">{{ feeError() }}</p>
+      }
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="pay-title">
+    <div class="panel-head">
+      <h2 id="pay-title">{{ t().SETTINGS_PAY_TITLE }}</h2>
+      <p>{{ t().SETTINGS_PAY_HINT }}</p>
+    </div>
+
+    <label class="switch-row">
+      <button
+        type="button"
+        role="switch"
+        class="switch"
+        [class.on]="directConfirmSel()"
+        [attr.aria-checked]="directConfirmSel()"
+        [attr.aria-label]="t().SETTINGS_PAY_DIRECT_LABEL"
+        (click)="directConfirmSel.set(!directConfirmSel()); saved.set(false)"
+      >
+        <span class="switch-thumb" aria-hidden="true"></span>
+      </button>
+      <span class="switch-text">
+        <span class="switch-label">{{ t().SETTINGS_PAY_DIRECT_LABEL }}</span>
+      </span>
+    </label>
+    <p class="field-error" role="note">{{ t().SETTINGS_PAY_DIRECT_WARN }}</p>
+  </section>
+
+  <footer class="global-actions">
+    <p class="global-hint">
+      @if (hasErrors()) {
+        {{ t().SETTINGS_FIX_ERRORS }}
+      } @else if (dirty()) {
+        {{ t().SETTINGS_UNSAVED }}
+      } @else {
+        {{ t().SETTINGS_ALL_SAVED }}
+      }
+    </p>
+    <button
+      type="button"
+      class="btn-primary"
+      [disabled]="!dirty() || isSaving() || hasErrors()"
+      [attr.aria-busy]="isSaving()"
+      (click)="save()"
+    >
+      @if (isSaving()) {
+        <span class="loader" aria-hidden="true"></span>
+        {{ t().SETTINGS_SAVING }}
+      } @else {
+        <span class="material-icons-round" aria-hidden="true">save</span>
+        {{ t().SETTINGS_SAVE }}
+      }
+    </button>
+  </footer>
+</div>

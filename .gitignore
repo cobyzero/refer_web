@@ -42,6 +42,11 @@ __screenshots__/
 # Selenium test report
 /selenium-report.html
 
+# Env (fuente de verdad local para URLs; ver .env.example)
+.env
+.env.local
+.env.*.local
+
 # System files
 .DS_Store
 Thumbs.db

@@ -1,0 +1,308 @@
+<div class="create-page">
+  <header class="page-header">
+    <button type="button" class="back-btn" (click)="back()">
+      <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+      Volver a puntos
+    </button>
+    <p class="page-eyebrow">Puntos y canjes</p>
+    <h1>{{ isEditMode() ? 'Editar recompensa' : 'Nueva recompensa' }}</h1>
+    <p class="page-sub">
+      @if (isEditMode()) {
+        Modifica la ficha. Los cambios se reflejan en el catálogo de canjes al guardar.
+      } @else {
+        Completa la ficha. Podrás verla en el catálogo de canjes en cuanto la guardes.
+      }
+    </p>
+  </header>
+
+  @if (loadingReward()) {
+    <div class="loading-block" role="status">
+      <div class="skeleton-row"></div>
+      <div class="skeleton-row"></div>
+      <div class="skeleton-row"></div>
+    </div>
+  } @else if (rewardNotFound()) {
+    <div class="banner banner-error" role="alert">
+      <span class="material-icons-round" aria-hidden="true">error_outline</span>
+      <div class="banner-body">
+        <p><strong>Recompensa no encontrada.</strong> Pudo haber sido eliminada.</p>
+        <button type="button" class="btn-secondary-sm" (click)="back()">
+          Volver a puntos
+        </button>
+      </div>
+    </div>
+  } @else if (createdName(); as created) {
+    <!-- Success state: explicit, with next actions -->
+    <div class="success-card" role="status">
+      <span class="success-icon material-icons-round" aria-hidden="true">check_circle</span>
+      <h2>{{ isEditMode() ? 'Recompensa actualizada' : 'Recompensa creada' }}</h2>
+      <p>“{{ created }}” ya está disponible en el catálogo de canjes.</p>
+      <div class="success-actions">
+        <button type="button" class="btn-primary" (click)="back()">
+          <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+          Volver a puntos
+        </button>
+        @if (!isEditMode()) {
+          <button type="button" class="btn-secondary" (click)="createAnother()">
+            <span class="material-icons-round" aria-hidden="true">add</span>
+            Crear otra
+          </button>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="create-grid">
+      <form
+        class="create-form"
+        novalidate
+        (ngSubmit)="save()"
+        aria-labelledby="create-form-title"
+      >
+            <h2 id="create-form-title" class="sr-only">{{ isEditMode() ? 'Editar recompensa' : 'Nueva recompensa' }}</h2>
+
+        @if (exitArmed()) {
+          <div class="banner banner-warn" role="alert">
+            <span class="material-icons-round" aria-hidden="true">warning_amber</span>
+            <div class="banner-body">
+              <p><strong>Tienes cambios sin guardar.</strong></p>
+              <div class="banner-actions">
+                <button type="button" class="btn-danger-ghost" (click)="back()">
+                  Salir sin guardar
+                </button>
+                <button type="button" class="btn-secondary-sm" (click)="keepEditing()">
+                  Seguir editando
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (saveError()) {
+          <div class="banner banner-error" role="alert">
+            <span class="material-icons-round" aria-hidden="true">error_outline</span>
+            <div class="banner-body">
+              <p>{{ saveError() }}</p>
+              <button type="button" class="btn-secondary-sm" (click)="save()">
+                Reintentar
+              </button>
+            </div>
+          </div>
+        }
+
+        <section class="form-card" aria-labelledby="sec-data">
+          <div class="form-field">
+            <label for="r-product">Producto asignado (auto-llenar) *</label>
+            <select
+              id="r-product"
+              class="form-input"
+              [ngModel]="productId()"
+              (ngModelChange)="onProductChange($event)"
+              name="productId"
+              [attr.aria-invalid]="productError() ? 'true' : 'false'"
+              [attr.aria-describedby]="productError() ? 'r-product-err' : null"
+            >
+              <option value="" disabled>-- Selecciona un producto --</option>
+              @for (prod of products(); track prod.id) {
+                <option [value]="prod.id">{{ prod.name }}</option>
+              }
+            </select>
+            @if (productError()) {
+              <p id="r-product-err" class="field-error" role="alert">{{ productError() }}</p>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="r-title">Título del canje *</label>
+            <input
+              type="text"
+              id="r-title"
+              class="form-input"
+              autocomplete="off"
+              maxlength="80"
+              placeholder="Ej. Croissant relleno gratis"
+              [ngModel]="title()"
+              (ngModelChange)="title.set($event)"
+              name="title"
+              required
+              [attr.aria-invalid]="titleError() ? 'true' : 'false'"
+              [attr.aria-describedby]="titleError() ? 'r-title-err' : null"
+            />
+            @if (titleError()) {
+              <p id="r-title-err" class="field-error" role="alert">{{ titleError() }}</p>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="r-desc">Descripción *</label>
+            <textarea
+              id="r-desc"
+              rows="3"
+              maxlength="300"
+              class="form-textarea"
+              placeholder="Describe las condiciones o qué incluye este canje…"
+              [ngModel]="description()"
+              (ngModelChange)="description.set($event)"
+              name="description"
+              [attr.aria-invalid]="descriptionError() ? 'true' : 'false'"
+              [attr.aria-describedby]="descriptionError() ? 'r-desc-err' : null"
+            ></textarea>
+            @if (descriptionError()) {
+              <p id="r-desc-err" class="field-error" role="alert">{{ descriptionError() }}</p>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="r-stars">Puntos / estrellas *</label>
+            <input
+              type="number"
+              id="r-stars"
+              class="form-input"
+              min="1"
+              step="1"
+              [ngModel]="starsRequired()"
+              (ngModelChange)="starsRequired.set($event)"
+              name="starsRequired"
+              [attr.aria-invalid]="starsError() ? 'true' : 'false'"
+              [attr.aria-describedby]="starsError() ? 'r-stars-err' : null"
+            />
+            @if (starsError()) {
+              <p id="r-stars-err" class="field-error" role="alert">{{ starsError() }}</p>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="r-image">URL imagen del producto</label>
+            <div class="image-row">
+              @if (imageUrl().trim()) {
+                <img
+                  [src]="imageUrl().trim()"
+                  alt=""
+                  class="image-thumb"
+                  (error)="hideImg($event)"
+                />
+              } @else {
+                <span class="image-thumb image-thumb-empty" aria-hidden="true">
+                  <span class="material-icons-round">image</span>
+                </span>
+              }
+              <input
+                type="url"
+                id="r-image"
+                class="form-input"
+                inputmode="url"
+                placeholder="https://…"
+                [ngModel]="imageUrl()"
+                (ngModelChange)="imageUrl.set($event)"
+                name="imageUrl"
+              />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <span class="label-like" id="r-icon-label">Icono de la recompensa</span>
+            <div class="icon-picker" role="group" aria-labelledby="r-icon-label">
+              @for (group of iconGroups; track group.label) {
+                <p class="icon-group-label">{{ group.label }}</p>
+                <div class="icon-grid">
+                  @for (opt of group.icons; track opt.name) {
+                    <button
+                      type="button"
+                      class="icon-opt"
+                      [class.selected]="icon() === opt.name"
+                      [attr.aria-pressed]="icon() === opt.name"
+                      [attr.title]="opt.hint + ' (' + opt.name + ')'"
+                      (click)="icon.set(opt.name)"
+                    >
+                      <span class="material-icons-round" aria-hidden="true">{{ opt.name }}</span>
+                      <span class="icon-opt-name">{{ opt.hint }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="form-field">
+            <span class="label-like" id="upload-label">Subir imagen local</span>
+            <label class="btn-upload" for="r-upload">
+              <span class="material-icons-round" aria-hidden="true">cloud_upload</span>
+              <span>{{ isUploading() ? 'Subiendo…' : 'Subir imagen local' }}</span>
+            </label>
+            <input
+              type="file"
+              id="r-upload"
+              class="sr-file"
+              accept="image/*"
+              aria-labelledby="upload-label"
+              [disabled]="isUploading()"
+              (change)="onFileSelected($event)"
+            />
+            @if (uploadError()) {
+              <p class="field-error" role="alert">{{ uploadError() }}</p>
+            }
+          </div>
+
+          <div class="form-field checkbox-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                [ngModel]="isActive()"
+                (ngModelChange)="isActive.set($event)"
+                name="isActive"
+              />
+              ¿Activo en catálogo?
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="back()">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn-primary"
+              [disabled]="isSaving() || isUploading()"
+              [attr.aria-busy]="isSaving()"
+            >
+              @if (isSaving()) {
+                <span class="loader" aria-hidden="true"></span>
+                {{ isEditMode() ? 'Guardando…' : 'Creando…' }}
+              } @else {
+                <span class="material-icons-round" aria-hidden="true">check</span>
+                {{ isEditMode() ? 'Guardar cambios' : 'Crear recompensa' }}
+              }
+            </button>
+          </div>
+        </section>
+      </form>
+
+      <!-- Live preview: mirrors the catalog card -->
+      <aside class="preview-col" aria-labelledby="preview-title">
+        <div class="preview-sticky">
+          <p class="preview-eyebrow" id="preview-title">Vista previa</p>
+          <div class="preview-card">
+            <div class="reward-preview" [class.inactive]="!isActive()">
+              <div class="reward-media">
+                @if (imageUrl().trim()) {
+                  <img [src]="imageUrl().trim()" alt="" (error)="hideImg($event)" />
+                } @else {
+                  <div class="fallback-icon">
+                    <span class="material-icons-round">{{ icon().trim() || 'stars' }}</span>
+                  </div>
+                }
+                <div class="points-badge">{{ starsRequired() || 0 }} pts</div>
+              </div>
+              <div class="reward-body">
+                <h3 class="reward-title">{{ previewTitle() }}</h3>
+                <p class="reward-description">{{ previewDescription() }}</p>
+                <span class="status-indicator" [class.active]="isActive()">
+                  {{ isActive() ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  }
+</div>

@@ -1,0 +1,108 @@
+<div class="manage-page">
+  <header class="page-header">
+    @if (showBack()) {
+      <button type="button" class="back-btn" (click)="back()">
+        <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+        {{ t().CAT_BACK }}
+      </button>
+    }
+    <p class="page-eyebrow">Catálogo</p>
+    <h1>{{ t().SIZES_TITLE }}</h1>
+    <p class="page-sub">{{ t().SIZES_SUB }}</p>
+  </header>
+
+  <form class="create-card" novalidate (ngSubmit)="create()" aria-label="{{ t().SIZES_TITLE }}">
+    <div class="create-row">
+      <div class="form-field">
+        <label for="size-name">{{ t().MGR_NAME }} *</label>
+        <input
+          type="text"
+          id="size-name"
+          class="form-input"
+          autocomplete="off"
+          maxlength="40"
+          [placeholder]="t().SIZES_PH"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+          name="sizeName"
+          required
+          [attr.aria-invalid]="nameError() ? 'true' : 'false'"
+          [attr.aria-describedby]="nameError() ? 'size-name-err' : null"
+        />
+        @if (nameError()) {
+          <p id="size-name-err" class="field-error" role="alert">{{ nameError() }}</p>
+        }
+      </div>
+      <button
+        type="submit"
+        class="btn-primary"
+        [disabled]="isCreating()"
+        [attr.aria-busy]="isCreating()"
+      >
+        @if (isCreating()) {
+          <span class="loader" aria-hidden="true"></span>
+          {{ t().SETTINGS_SAVING }}
+        } @else {
+          <span class="material-icons-round" aria-hidden="true">add</span>
+          {{ t().MGR_CREATE }}
+        }
+      </button>
+    </div>
+    @if (formError()) {
+      <p class="field-error" role="alert">{{ formError() }}</p>
+    }
+  </form>
+
+  @if (actionError()) {
+    <div class="banner banner-error" role="alert">
+      <span class="material-icons-round" aria-hidden="true">error_outline</span>
+      <div class="banner-body">
+        <p>{{ actionError() }}</p>
+        <button type="button" class="btn-retry" (click)="actionError.set(null)">OK</button>
+      </div>
+    </div>
+  }
+
+  @if (isLoading() && !sizes().length) {
+    <div class="loading-block" role="status" [attr.aria-label]="t().MGR_LOADING">
+      <div class="skeleton-row" aria-hidden="true"></div>
+      <div class="skeleton-row" aria-hidden="true"></div>
+    </div>
+  } @else if (loadError() && !sizes().length) {
+    <div class="banner banner-error" role="alert">
+      <span class="material-icons-round" aria-hidden="true">error_outline</span>
+      <div class="banner-body">
+        <p>{{ loadError() }}</p>
+        <button type="button" class="btn-retry" (click)="load()">{{ t().ORDERS_RETRY }}</button>
+      </div>
+    </div>
+  } @else if (!sizes().length) {
+    <div class="empty-state">
+      <span class="material-icons-round" aria-hidden="true">straighten</span>
+      <p><strong>{{ t().MGR_EMPTY }}</strong></p>
+      <p>{{ t().SIZES_EMPTY_SUB }}</p>
+    </div>
+  } @else {
+    <ul class="rows-list">
+      @for (size of sizes(); track size.id) {
+        <li>
+          <span class="row-icon" aria-hidden="true">
+            <span class="material-icons-round">straighten</span>
+          </span>
+          <span class="row-text">
+            <span class="row-name">{{ size.name }}</span>
+          </span>
+          <button
+            type="button"
+            class="icon-btn danger"
+            [class.armed]="deleteArmedId() === size.id"
+            (click)="askDelete(size.id)"
+            [attr.aria-label]="(deleteArmedId() === size.id ? t().MGR_CONFIRM : t().MGR_DELETE) + ': ' + size.name"
+          >
+            <span class="material-icons-round" aria-hidden="true">delete</span>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

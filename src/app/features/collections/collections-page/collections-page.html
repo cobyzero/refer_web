@@ -1,0 +1,310 @@
+<div class="collections-page">
+  <div class="collections-main">
+    <header class="page-header">
+      <div class="header-text">
+        <p class="page-eyebrow">{{ t().MENU_PRODUCTS }}</p>
+        <h1>{{ t().FEAT_TITLE }}</h1>
+        <p class="page-sub">{{ t().FEAT_SUB }}</p>
+      </div>
+      <button
+        type="button"
+        class="btn-add"
+        (click)="toggleCreate()"
+        [attr.aria-expanded]="showCreate()"
+      >
+        <span class="material-icons-round" aria-hidden="true">add</span>
+        {{ t().FEAT_NEW }}
+      </button>
+    </header>
+
+    <!-- Inline create form -->
+    @if (showCreate()) {
+      <form class="create-card" novalidate (ngSubmit)="saveCollection()" aria-label="{{ t().FEAT_NEW }}">
+        <div class="form-row">
+          <div class="form-field">
+            <label for="col-name">{{ t().FEAT_NAME }} *</label>
+            <input
+              type="text"
+              id="col-name"
+              class="form-input"
+              autocomplete="off"
+              maxlength="80"
+              [placeholder]="t().FEAT_NAME_PH"
+              [ngModel]="createName()"
+              (ngModelChange)="createName.set($event)"
+              name="colName"
+              required
+              [attr.aria-invalid]="createNameError() ? 'true' : 'false'"
+              [attr.aria-describedby]="createNameError() ? 'col-name-err' : null"
+            />
+            @if (createNameError()) {
+              <p id="col-name-err" class="field-error" role="alert">{{ createNameError() }}</p>
+            }
+          </div>
+          <div class="form-field">
+            <label for="col-desc">{{ t().FEAT_DESC }}</label>
+            <input
+              type="text"
+              id="col-desc"
+              class="form-input"
+              autocomplete="off"
+              maxlength="140"
+              [placeholder]="t().FEAT_DESC_PH"
+              [ngModel]="createDesc()"
+              (ngModelChange)="createDesc.set($event)"
+              name="colDesc"
+            />
+          </div>
+        </div>
+        @if (createError()) {
+          <p class="field-error" role="alert">{{ createError() }}</p>
+        }
+        <div class="create-actions">
+          <button type="button" class="btn-secondary" (click)="toggleCreate()">
+            {{ t().FEAT_CANCEL }}
+          </button>
+          <button
+            type="submit"
+            class="btn-primary"
+            [disabled]="isCreating()"
+            [attr.aria-busy]="isCreating()"
+          >
+            @if (isCreating()) {
+              <span class="loader" aria-hidden="true"></span>
+              {{ t().FEAT_CREATING }}
+            } @else {
+              <span class="material-icons-round" aria-hidden="true">check</span>
+              {{ t().FEAT_CREATE }}
+            }
+          </button>
+        </div>
+      </form>
+    }
+
+    <!-- Loading -->
+    @if (isLoading() && !collections().length && !listError()) {
+      <div class="loading-block" role="status" [attr.aria-label]="t().FEAT_LOADING">
+        <div class="skeleton-row" aria-hidden="true"></div>
+        <div class="skeleton-row" aria-hidden="true"></div>
+      </div>
+    }
+
+    <!-- Error -->
+    @if (listError() && !collections().length) {
+      <div class="banner banner-error" role="alert">
+        <span class="material-icons-round" aria-hidden="true">error_outline</span>
+        <div class="banner-body">
+          <p><strong>{{ t().FEAT_ERROR }}</strong> {{ listError() }}</p>
+          <button type="button" class="btn-retry" (click)="retry()">{{ t().ORDERS_RETRY }}</button>
+        </div>
+      </div>
+    }
+
+    <!-- List -->
+    @if (collections().length) {
+      <ul class="collections-list">
+        @for (collection of collections(); track collection.id) {
+          <li>
+            <button
+              type="button"
+              class="collection-card"
+              [class.selected]="selectedId() === collection.id"
+              [attr.aria-expanded]="selectedId() === collection.id"
+              (click)="selectCollection(collection.id, $event)"
+            >
+              <span class="collection-main">
+                <span class="collection-icon" aria-hidden="true">
+                  <span class="material-icons-round">auto_awesome</span>
+                </span>
+                <span class="collection-text">
+                  <span class="collection-name">{{ collection.name }}</span>
+                  @if (collection.description) {
+                    <span class="collection-desc">{{ collection.description }}</span>
+                  }
+                </span>
+              </span>
+              <span class="collection-meta">
+                <span
+                  class="visibility-badge"
+                  [class.off]="!collection.isActive"
+                >{{ collection.isActive ? t().FEAT_ACTIVE : t().FEAT_INACTIVE }}</span>
+                <span class="count-badge">{{ countLabel(collection.products.length) }}</span>
+                <span class="material-icons-round chevron" aria-hidden="true">chevron_right</span>
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+    } @else if (!isLoading() && !listError()) {
+      <div class="empty-state">
+        <span class="material-icons-round" aria-hidden="true">auto_awesome</span>
+        <p><strong>{{ t().FEAT_EMPTY }}</strong></p>
+        <p>{{ t().FEAT_EMPTY_SUB }}</p>
+      </div>
+    }
+  </div>
+
+  <!-- Mobile backdrop -->
+  @if (selected()) {
+    <div class="detail-backdrop" aria-hidden="true" (click)="closeDetail()"></div>
+  }
+
+  <!-- Detail -->
+  @if (selected(); as collection) {
+    <aside class="collection-detail" aria-labelledby="collection-detail-title">
+      <div class="detail-header">
+        <div class="header-top">
+          <p class="active-label">{{ t().FEAT_TITLE }}</p>
+          <button
+            type="button"
+            class="close-btn"
+            (click)="closeDetail()"
+            [attr.aria-label]="t().FEAT_CLOSE"
+          >
+            <span class="material-icons-round" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <h2 id="collection-detail-title" tabindex="-1">{{ collection.name }}</h2>
+        @if (collection.description) {
+          <p class="detail-desc">{{ collection.description }}</p>
+        }
+        @if (actionError()) {
+          <p class="field-error" role="alert">{{ actionError() }}</p>
+        }
+      </div>
+
+      <div class="detail-content">
+        <!-- Rename -->
+        @if (editingId() === collection.id) {
+          <form class="rename-form" novalidate (ngSubmit)="saveRename()">
+            <div class="form-field">
+              <label for="rename-name">{{ t().FEAT_NAME }} *</label>
+              <input
+                type="text"
+                id="rename-name"
+                class="form-input"
+                maxlength="80"
+                [ngModel]="editName()"
+                (ngModelChange)="editName.set($event)"
+                name="renameName"
+                required
+              />
+            </div>
+            <div class="form-field">
+              <label for="rename-desc">{{ t().FEAT_DESC }}</label>
+              <input
+                type="text"
+                id="rename-desc"
+                class="form-input"
+                maxlength="140"
+                [ngModel]="editDesc()"
+                (ngModelChange)="editDesc.set($event)"
+                name="renameDesc"
+              />
+            </div>
+            <div class="rename-actions">
+              <button type="button" class="btn-secondary-sm" (click)="cancelRename()">
+                {{ t().FEAT_CANCEL }}
+              </button>
+              <button
+                type="submit"
+                class="btn-primary-sm"
+                [disabled]="isSavingRename() || editName().trim().length < 2"
+              >
+                {{ t().EDIT_BTN_SAVE }}
+              </button>
+            </div>
+          </form>
+        }
+
+        <!-- Products -->
+        <section [attr.aria-label]="t().FEAT_PRODUCTS">
+          <h3 class="section-title">{{ t().FEAT_PRODUCTS }} · {{ collection.products.length }}</h3>
+          @if (collection.products.length) {
+            <ul class="detail-products">
+              @for (product of collection.products; track product.id) {
+                <li>
+                  <img
+                    [src]="product.imageUrl"
+                    alt=""
+                    loading="lazy"
+                    (error)="hideImg($event)"
+                  />
+                  <span class="dp-text">
+                    <span class="dp-name">{{ product.name }}</span>
+                    <span class="dp-price">{{ product.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+                  </span>
+                  <button
+                    type="button"
+                    class="icon-btn danger"
+                    (click)="removeProduct(product.id)"
+                    [attr.aria-label]="t().FEAT_REMOVE + ': ' + product.name"
+                  >
+                    <span class="material-icons-round" aria-hidden="true">close</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (availableProducts().length) {
+            <div class="add-row">
+              <label class="sr-only" for="add-product">{{ t().FEAT_ADD_PRODUCT }}</label>
+              <select
+                id="add-product"
+                class="form-input form-select"
+                [ngModel]="addSelect()"
+                (ngModelChange)="addSelect.set($event)"
+                name="addProduct"
+              >
+                <option value="">{{ t().FEAT_PICK_PH }}</option>
+                @for (product of availableProducts(); track product.id) {
+                  <option [value]="product.id">{{ product.name }}</option>
+                }
+              </select>
+              <button
+                type="button"
+                class="btn-primary-sm"
+                [disabled]="!addSelect() || isAddingItem()"
+                (click)="addSelectedProduct()"
+              >
+                @if (isAddingItem()) {
+                  <span class="loader-sm" aria-hidden="true"></span>
+                } @else {
+                  <span class="material-icons-round" aria-hidden="true">add</span>
+                }
+                {{ t().FEAT_ADD_PRODUCT }}
+              </button>
+            </div>
+          } @else {
+            <p class="muted">{{ t().FEAT_ALL_ADDED }}</p>
+          }
+        </section>
+      </div>
+
+      <div class="detail-actions">
+        <button type="button" class="row-btn" (click)="toggleActive()">
+          <span class="material-icons-round" aria-hidden="true">
+            {{ collection.isActive ? 'visibility' : 'visibility_off' }}
+          </span>
+          {{ collection.isActive ? t().FEAT_ACTIVE : t().FEAT_INACTIVE }}
+        </button>
+        @if (editingId() !== collection.id) {
+          <button type="button" class="row-btn" (click)="startRename()">
+            <span class="material-icons-round" aria-hidden="true">edit</span>
+            {{ t().FEAT_RENAME }}
+          </button>
+        }
+        <button
+          type="button"
+          class="row-btn danger"
+          [class.armed]="deleteArmedId() === collection.id"
+          (click)="askDelete(collection.id)"
+        >
+          <span class="material-icons-round" aria-hidden="true">delete</span>
+          {{ deleteArmedId() === collection.id ? t().FEAT_DELETE_CONFIRM : t().FEAT_DELETE }}
+        </button>
+      </div>
+    </aside>
+  }
+</div>

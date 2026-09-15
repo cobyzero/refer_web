@@ -1,0 +1,321 @@
+<div class="create-page">
+  <header class="page-header">
+    @if (showBack()) {
+      <button type="button" class="back-btn" (click)="back()">
+        <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+        {{ t().CAT_BACK }}
+      </button>
+    }
+    <p class="page-eyebrow">Catálogo</p>
+    <h1>{{ t().CAT_TITLE }}</h1>
+    <p class="page-sub">{{ t().CAT_SUB }}</p>
+  </header>
+
+  @if (createdName(); as created) {
+    <!-- Success state: explicit, with next actions -->
+    <div class="success-card" role="status">
+      <span class="success-icon material-icons-round" aria-hidden="true">check_circle</span>
+      <h2>{{ t().CAT_SUCCESS_TITLE }}</h2>
+      <p>{{ t().CAT_SUCCESS_SUB.replace('{name}', created) }}</p>
+      <div class="success-actions">
+        <button type="button" class="btn-primary" (click)="back()">
+          <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+          {{ t().CAT_BACK }}
+        </button>
+        <button type="button" class="btn-secondary" (click)="createAnother()">
+          <span class="material-icons-round" aria-hidden="true">add</span>
+          {{ t().CAT_ANOTHER }}
+        </button>
+      </div>
+    </div>
+  } @else {
+    <div class="create-grid">
+      <form
+        class="create-form"
+        novalidate
+        (ngSubmit)="save()"
+        aria-labelledby="create-form-title"
+      >
+        <h2 id="create-form-title" class="sr-only">{{ t().CAT_TITLE }}</h2>
+
+        @if (exitArmed()) {
+          <div class="banner banner-warn" role="alert">
+            <span class="material-icons-round" aria-hidden="true">warning_amber</span>
+            <div class="banner-body">
+              <p><strong>{{ t().CREATE_UNSAVED }}</strong></p>
+              <div class="banner-actions">
+                <button type="button" class="btn-danger-ghost" (click)="back()">
+                  {{ t().CREATE_EXIT_ANYWAY }}
+                </button>
+                <button type="button" class="btn-secondary-sm" (click)="keepEditing()">
+                  {{ t().CREATE_KEEP_EDITING }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (saveError()) {
+          <div class="banner banner-error" role="alert">
+            <span class="material-icons-round" aria-hidden="true">error_outline</span>
+            <div class="banner-body">
+              <p>{{ saveError() }}</p>
+              <button type="button" class="btn-secondary-sm" (click)="save()">
+                {{ t().ORDERS_RETRY }}
+              </button>
+            </div>
+          </div>
+        }
+
+        <section class="form-card" aria-labelledby="sec-data">
+          <div class="form-field">
+            <label for="c-name">{{ t().CAT_NAME_LABEL }} *</label>
+            <input
+              type="text"
+              id="c-name"
+              class="form-input"
+              autocomplete="off"
+              maxlength="60"
+              [placeholder]="t().CAT_NAME_PH"
+              [ngModel]="name()"
+              (ngModelChange)="name.set($event)"
+              name="name"
+              required
+              [attr.aria-invalid]="nameError() ? 'true' : 'false'"
+              [attr.aria-describedby]="nameError() ? 'c-name-err' : null"
+            />
+            @if (nameError()) {
+              <p id="c-name-err" class="field-error" role="alert">{{ nameError() }}</p>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="c-desc">{{ t().EDIT_LABEL_DESCRIPTION }}</label>
+            <textarea
+              id="c-desc"
+              rows="2"
+              maxlength="200"
+              class="form-textarea"
+              [placeholder]="t().CAT_DESC_PH"
+              [ngModel]="description()"
+              (ngModelChange)="description.set($event)"
+              name="description"
+            ></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="c-image">{{ t().EDIT_LABEL_IMAGE }}</label>
+            <div class="image-row">
+              @if (previewUrl()) {
+                <img
+                  [src]="previewUrl()"
+                  alt=""
+                  class="image-thumb"
+                  (error)="hideImg($event)"
+                />
+              } @else {
+                <span class="image-thumb image-thumb-empty" aria-hidden="true">
+                  <span class="material-icons-round">image</span>
+                </span>
+              }
+              <input
+                type="url"
+                id="c-image"
+                class="form-input"
+                inputmode="url"
+                placeholder="https://…"
+                [ngModel]="imageUrl()"
+                (ngModelChange)="imageUrl.set($event)"
+                name="imageUrl"
+              />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <span class="label-like" id="upload-label">{{ t().EDIT_LABEL_UPLOAD_IMAGE }}</span>
+            <label class="btn-upload" for="c-upload">
+              <span class="material-icons-round" aria-hidden="true">cloud_upload</span>
+              <span>{{ isUploading() ? t().BTN_UPLOADING : t().EDIT_LABEL_UPLOAD_IMAGE }}</span>
+            </label>
+            <input
+              type="file"
+              id="c-upload"
+              class="sr-file"
+              accept="image/*"
+              aria-labelledby="upload-label"
+              [disabled]="isUploading()"
+              (change)="onFileSelected($event)"
+            />
+            @if (uploadError()) {
+              <p class="field-error" role="alert">{{ uploadError() }}</p>
+            }
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="back()">
+              {{ t().EDIT_BTN_CANCEL }}
+            </button>
+            <button
+              type="submit"
+              class="btn-primary"
+              [disabled]="isSaving() || isUploading()"
+              [attr.aria-busy]="isSaving()"
+            >
+              @if (isSaving()) {
+                <span class="loader" aria-hidden="true"></span>
+                {{ t().CAT_SAVING }}
+              } @else {
+                <span class="material-icons-round" aria-hidden="true">check</span>
+                {{ t().CAT_SUBMIT }}
+              }
+            </button>
+          </div>
+        </section>
+      </form>
+
+      <!-- Existing categories: reference mirror, avoids duplicates -->
+      <aside class="preview-col" aria-labelledby="existing-title">
+        <div class="preview-sticky">
+          <p class="preview-eyebrow" id="existing-title">{{ t().CAT_EXISTING }}</p>
+          <div class="preview-card">
+            @if (catsLoading() && !categories().length) {
+              <p class="muted" role="status">{{ t().PRODUCTS_LOADING }}</p>
+            } @else if (!categories().length) {
+              <p class="muted">{{ t().CAT_EMPTY }}</p>
+            } @else {
+              <ul class="cat-list">
+                @for (category of categories(); track category.id) {
+                  <li class="cat-row">
+                    <div class="cat-main">
+                      @if (category.imageUrl) {
+                        <img
+                          [src]="category.imageUrl"
+                          alt=""
+                          loading="lazy"
+                          (error)="hideImg($event)"
+                        />
+                      } @else {
+                        <span class="material-icons-round" aria-hidden="true">label</span>
+                      }
+                      <span class="cat-text">
+                        <span class="cat-name">{{ category.name }}</span>
+                        @if (category.description) {
+                          <span class="cat-desc">{{ category.description }}</span>
+                        }
+                      </span>
+                      <span class="cat-actions">
+                        <button
+                          type="button"
+                          class="icon-btn"
+                          (click)="startEdit(category.id)"
+                          [attr.aria-label]="t().CAT_EDIT + ': ' + category.name"
+                        >
+                          <span class="material-icons-round" aria-hidden="true">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="icon-btn danger"
+                          [class.armed]="deleteArmedCatId() === category.id"
+                          (click)="askDeleteCategory(category.id)"
+                          [attr.aria-label]="(deleteArmedCatId() === category.id ? t().CAT_DELETE_CONFIRM : t().CAT_DELETE) + ': ' + category.name"
+                        >
+                          <span class="material-icons-round" aria-hidden="true">delete</span>
+                        </button>
+                      </span>
+                    </div>
+
+                    @if (editingCatId() === category.id) {
+                      <form class="inline-edit" novalidate (ngSubmit)="saveEdit()">
+                        <div class="form-field">
+                          <label [for]="'edit-name-' + category.id">{{ t().CAT_NAME_LABEL }} *</label>
+                          <input
+                            type="text"
+                            [id]="'edit-name-' + category.id"
+                            class="form-input"
+                            maxlength="60"
+                            [ngModel]="editName()"
+                            (ngModelChange)="editName.set($event)"
+                            name="editName"
+                            required
+                            [attr.aria-invalid]="editNameError() ? 'true' : 'false'"
+                          />
+                          @if (editNameError()) {
+                            <p class="field-error" role="alert">{{ editNameError() }}</p>
+                          }
+                        </div>
+                        <div class="form-field">
+                          <label [for]="'edit-desc-' + category.id">{{ t().EDIT_LABEL_DESCRIPTION }}</label>
+                          <textarea
+                            [id]="'edit-desc-' + category.id"
+                            rows="2"
+                            maxlength="200"
+                            class="form-textarea"
+                            [ngModel]="editDesc()"
+                            (ngModelChange)="editDesc.set($event)"
+                            name="editDesc"
+                          ></textarea>
+                        </div>
+                        <div class="form-field">
+                          <label [for]="'edit-image-' + category.id">{{ t().EDIT_LABEL_IMAGE }}</label>
+                          <div class="image-row">
+                            @if (editImage().trim()) {
+                              <img
+                                [src]="editImage().trim()"
+                                alt=""
+                                class="image-thumb"
+                                (error)="hideImg($event)"
+                              />
+                            }
+                            <input
+                              type="url"
+                              [id]="'edit-image-' + category.id"
+                              class="form-input"
+                              inputmode="url"
+                              placeholder="https://…"
+                              [ngModel]="editImage()"
+                              (ngModelChange)="editImage.set($event)"
+                              name="editImage"
+                            />
+                          </div>
+                        </div>
+                        <div class="form-field">
+                          <label class="btn-upload" [for]="'edit-upload-' + category.id">
+                            <span class="material-icons-round" aria-hidden="true">cloud_upload</span>
+                            <span>{{ isEditUploading() ? t().BTN_UPLOADING : t().EDIT_LABEL_UPLOAD_IMAGE }}</span>
+                          </label>
+                          <input
+                            type="file"
+                            [id]="'edit-upload-' + category.id"
+                            class="sr-file"
+                            accept="image/*"
+                            [disabled]="isEditUploading()"
+                            (change)="onEditFileSelected($event)"
+                          />
+                        </div>
+                        @if (editError()) {
+                          <p class="field-error" role="alert">{{ editError() }}</p>
+                        }
+                        <div class="inline-actions">
+                          <button type="button" class="btn-secondary-sm" (click)="cancelEdit()">
+                            {{ t().EDIT_BTN_CANCEL }}
+                          </button>
+                          <button
+                            type="submit"
+                            class="btn-primary-sm"
+                            [disabled]="isSavingEdit() || isEditUploading()"
+                          >
+                            {{ t().EDIT_BTN_SAVE }}
+                          </button>
+                        </div>
+                      </form>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </div>
+      </aside>
+    </div>
+  }
+</div>

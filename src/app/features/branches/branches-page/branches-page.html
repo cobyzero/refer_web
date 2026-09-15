@@ -1,0 +1,299 @@
+<div class="branches-page">
+  <header class="page-header">
+    <div class="header-text">
+      <p class="page-eyebrow">Operación</p>
+      <h1>{{ t().SEDES_TITLE }}</h1>
+      <p class="page-sub">{{ t().SEDES_SUB }}</p>
+    </div>
+    <button
+      type="button"
+      class="btn-add"
+      (click)="toggleCreate()"
+      [attr.aria-expanded]="showCreate()"
+    >
+      <span class="material-icons-round" aria-hidden="true">add</span>
+      {{ t().SEDES_NEW }}
+    </button>
+  </header>
+
+  @if (showCreate()) {
+    <form class="create-card" novalidate (ngSubmit)="save()" aria-label="{{ t().SEDES_NEW }}">
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="branch-name">{{ t().SEDES_NAME }} *</label>
+          <input
+            type="text"
+            id="branch-name"
+            class="form-input"
+            autocomplete="off"
+            maxlength="80"
+            [placeholder]="t().SEDES_NAME_PH"
+            [ngModel]="createName()"
+            (ngModelChange)="createName.set($event)"
+            name="branchName"
+            required
+            [attr.aria-invalid]="createNameError() ? 'true' : 'false'"
+            [attr.aria-describedby]="createNameError() ? 'branch-name-err' : null"
+          />
+          @if (createNameError()) {
+            <p id="branch-name-err" class="field-error" role="alert">{{ createNameError() }}</p>
+          }
+        </div>
+        <div class="form-field">
+          <label for="branch-address">{{ t().SEDES_ADDRESS }} *</label>
+          <input
+            type="text"
+            id="branch-address"
+            class="form-input"
+            autocomplete="street-address"
+            maxlength="140"
+            [placeholder]="t().SEDES_ADDRESS_PH"
+            [ngModel]="createAddress()"
+            (ngModelChange)="createAddress.set($event)"
+            name="branchAddress"
+            required
+            [attr.aria-invalid]="createAddressError() ? 'true' : 'false'"
+            [attr.aria-describedby]="createAddressError() ? 'branch-address-err' : null"
+          />
+          @if (createAddressError()) {
+            <p id="branch-address-err" class="field-error" role="alert">{{ createAddressError() }}</p>
+          }
+        </div>
+        <div class="form-field">
+          <label for="branch-city">{{ t().SEDES_CITY }}</label>
+          <input
+            type="text"
+            id="branch-city"
+            class="form-input"
+            autocomplete="address-level2"
+            maxlength="60"
+            [ngModel]="createCity()"
+            (ngModelChange)="createCity.set($event)"
+            name="branchCity"
+          />
+        </div>
+        <div class="form-field">
+          <label for="branch-state">{{ t().SEDES_STATE }}</label>
+          <input
+            type="text"
+            id="branch-state"
+            class="form-input"
+            autocomplete="address-level1"
+            maxlength="60"
+            [ngModel]="createState()"
+            (ngModelChange)="createState.set($event)"
+            name="branchState"
+          />
+        </div>
+        <div class="form-field">
+          <label for="branch-zip">{{ t().SEDES_ZIP }}</label>
+          <input
+            type="text"
+            id="branch-zip"
+            class="form-input"
+            autocomplete="postal-code"
+            inputmode="numeric"
+            maxlength="12"
+            [ngModel]="createZip()"
+            (ngModelChange)="createZip.set($event)"
+            name="branchZip"
+          />
+        </div>
+      </div>
+      @if (createError()) {
+        <p class="field-error" role="alert">{{ createError() }}</p>
+      }
+      <div class="create-actions">
+        <button type="button" class="btn-secondary" (click)="toggleCreate()">
+          {{ t().EDIT_BTN_CANCEL }}
+        </button>
+        <button
+          type="submit"
+          class="btn-primary"
+          [disabled]="isCreating()"
+          [attr.aria-busy]="isCreating()"
+        >
+          @if (isCreating()) {
+            <span class="loader" aria-hidden="true"></span>
+            {{ t().SEDES_CREATING }}
+          } @else {
+            <span class="material-icons-round" aria-hidden="true">check</span>
+            {{ t().SEDES_CREATE }}
+          }
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (actionError()) {
+    <div class="banner banner-error" role="alert">
+      <span class="material-icons-round" aria-hidden="true">error_outline</span>
+      <div class="banner-body">
+        <p>{{ actionError() }}</p>
+        <button type="button" class="btn-retry" (click)="actionError.set(null)">OK</button>
+      </div>
+    </div>
+  }
+
+  @if (isLoading() && !branches().length && !listError()) {
+    <div class="loading-block" role="status" [attr.aria-label]="t().MGR_LOADING">
+      <div class="skeleton-row" aria-hidden="true"></div>
+      <div class="skeleton-row" aria-hidden="true"></div>
+    </div>
+  } @else if (listError() && !branches().length) {
+    <div class="banner banner-error" role="alert">
+      <span class="material-icons-round" aria-hidden="true">error_outline</span>
+      <div class="banner-body">
+        <p><strong>{{ t().MGR_ERROR }}</strong> {{ listError() }}</p>
+        <button type="button" class="btn-retry" (click)="retry()">{{ t().ORDERS_RETRY }}</button>
+      </div>
+    </div>
+  } @else if (!branches().length) {
+    <div class="empty-state">
+      <span class="material-icons-round" aria-hidden="true">storefront</span>
+      <p><strong>{{ t().SEDES_EMPTY }}</strong></p>
+      <p>{{ t().SEDES_EMPTY_SUB }}</p>
+    </div>
+  } @else {
+    <ul class="branches-list">
+      @for (branch of branches(); track branch.id) {
+        <li class="branch-row">
+          <div class="branch-main">
+            <span class="branch-icon" aria-hidden="true">
+              <span class="material-icons-round">storefront</span>
+            </span>
+            <span class="branch-text">
+              <span class="branch-name">{{ branch.name }}</span>
+              <span class="branch-address">{{ addressLine(branch) }}</span>
+            </span>
+            <span
+              class="visibility-badge"
+              [class.off]="!branch.isActive"
+            >{{ branch.isActive ? t().SEDES_ACTIVE : t().SEDES_INACTIVE }}</span>
+            <span class="branch-actions">
+              <button
+                type="button"
+                class="icon-btn"
+                (click)="toggleActive(branch)"
+                [attr.aria-label]="(branch.isActive ? t().SEDES_INACTIVE : t().SEDES_ACTIVE) + ': ' + branch.name"
+                [attr.aria-pressed]="branch.isActive"
+              >
+                <span class="material-icons-round" aria-hidden="true">
+                  {{ branch.isActive ? 'visibility' : 'visibility_off' }}
+                </span>
+              </button>
+              <button
+                type="button"
+                class="icon-btn"
+                (click)="startEdit(branch)"
+                [attr.aria-label]="t().SEDES_EDIT + ': ' + branch.name"
+              >
+                <span class="material-icons-round" aria-hidden="true">edit</span>
+              </button>
+              <button
+                type="button"
+                class="icon-btn danger"
+                [class.armed]="deleteArmedId() === branch.id"
+                (click)="askDelete(branch.id)"
+                [attr.aria-label]="(deleteArmedId() === branch.id ? t().SEDES_CONFIRM : t().SEDES_DELETE) + ': ' + branch.name"
+              >
+                <span class="material-icons-round" aria-hidden="true">delete</span>
+              </button>
+            </span>
+          </div>
+
+          @if (editingId() === branch.id) {
+            <form class="inline-edit" novalidate (ngSubmit)="saveEdit()">
+              <div class="form-grid">
+                <div class="form-field">
+                  <label [for]="'edit-name-' + branch.id">{{ t().SEDES_NAME }} *</label>
+                  <input
+                    type="text"
+                    [id]="'edit-name-' + branch.id"
+                    class="form-input"
+                    maxlength="80"
+                    [ngModel]="editName()"
+                    (ngModelChange)="editName.set($event)"
+                    name="editName"
+                    required
+                  />
+                  @if (editNameError()) {
+                    <p class="field-error" role="alert">{{ editNameError() }}</p>
+                  }
+                </div>
+                <div class="form-field">
+                  <label [for]="'edit-address-' + branch.id">{{ t().SEDES_ADDRESS }} *</label>
+                  <input
+                    type="text"
+                    [id]="'edit-address-' + branch.id"
+                    class="form-input"
+                    maxlength="140"
+                    [ngModel]="editAddress()"
+                    (ngModelChange)="editAddress.set($event)"
+                    name="editAddress"
+                    required
+                  />
+                  @if (editAddressError()) {
+                    <p class="field-error" role="alert">{{ editAddressError() }}</p>
+                  }
+                </div>
+                <div class="form-field">
+                  <label [for]="'edit-city-' + branch.id">{{ t().SEDES_CITY }}</label>
+                  <input
+                    type="text"
+                    [id]="'edit-city-' + branch.id"
+                    class="form-input"
+                    maxlength="60"
+                    [ngModel]="editCity()"
+                    (ngModelChange)="editCity.set($event)"
+                    name="editCity"
+                  />
+                </div>
+                <div class="form-field">
+                  <label [for]="'edit-state-' + branch.id">{{ t().SEDES_STATE }}</label>
+                  <input
+                    type="text"
+                    [id]="'edit-state-' + branch.id"
+                    class="form-input"
+                    maxlength="60"
+                    [ngModel]="editState()"
+                    (ngModelChange)="editState.set($event)"
+                    name="editState"
+                  />
+                </div>
+                <div class="form-field">
+                  <label [for]="'edit-zip-' + branch.id">{{ t().SEDES_ZIP }}</label>
+                  <input
+                    type="text"
+                    [id]="'edit-zip-' + branch.id"
+                    class="form-input"
+                    inputmode="numeric"
+                    maxlength="12"
+                    [ngModel]="editZip()"
+                    (ngModelChange)="editZip.set($event)"
+                    name="editZip"
+                  />
+                </div>
+              </div>
+              @if (editError()) {
+                <p class="field-error" role="alert">{{ editError() }}</p>
+              }
+              <div class="inline-actions">
+                <button type="button" class="btn-secondary-sm" (click)="cancelEdit()">
+                  {{ t().EDIT_BTN_CANCEL }}
+                </button>
+                <button
+                  type="submit"
+                  class="btn-primary-sm"
+                  [disabled]="isSavingEdit()"
+                >
+                  {{ t().EDIT_BTN_SAVE }}
+                </button>
+              </div>
+            </form>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>

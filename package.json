@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
+    "env:sync": "node scripts/set-env.mjs",
+    "prestart": "node scripts/set-env.mjs",
+    "prebuild": "node scripts/set-env.mjs",
+    "prewatch": "node scripts/set-env.mjs",
+    "pretest": "node scripts/set-env.mjs",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",

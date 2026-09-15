@@ -1,34 +1,83 @@
-<aside class="sidebar">
+<a class="skip-link" href="#main-content">{{ t().SKIP_TO_CONTENT }}</a>
+
+<aside class="sidebar" id="app-sidebar" [class.expanded]="sidebar.expanded()">
   <div class="logo-container">
-    <div class="logo-wrapper">
-      <img src="/images/logo.png" alt="Logo" class="sidebar-logo">
-    </div>
-    <div class="logo-text">
-      <span class="brand">Raymund</span>
-      <span class="sub">Coffee</span>
+    <img src="/images/refer-logo.svg" alt="Refer" class="sidebar-logo" />
+    <div class="logo-text rail-hidden">
+      <span class="brand">Refer</span>
+      <span class="sub">Admin</span>
     </div>
   </div>
 
-  <nav class="sidebar-nav">
-    <a *ngFor="let item of menuItems()" 
-       [routerLink]="item.route" 
-       routerLinkActive="active" 
-       class="nav-item">
-      <span class="material-icons-round">{{item.icon}}</span>
-      <span class="item-label">{{item.label}}</span>
-    </a>
+  <nav class="sidebar-nav" aria-labelledby="sidebar-menu-label">
+    <p class="nav-eyebrow rail-hidden" id="sidebar-menu-label">{{ t().MENU_LABEL }}</p>
+    <ng-container *ngFor="let item of menuItems()">
+      <a
+        *ngIf="!item.children"
+        [routerLink]="item.route"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        #rla="routerLinkActive"
+        [attr.aria-current]="rla.isActive ? 'page' : null"
+        class="nav-item"
+      >
+        <span class="nav-icon" aria-hidden="true">
+          <span class="material-icons-round">{{ item.icon }}</span>
+        </span>
+        <span class="item-label rail-hidden">{{ item.label }}</span>
+      </a>
+
+      <div *ngIf="item.children" class="nav-group">
+        <button
+          type="button"
+          class="nav-item nav-group-toggle"
+          (click)="toggleProducts()"
+          [attr.aria-expanded]="productsOpen()"
+          aria-controls="products-submenu"
+        >
+          <span class="nav-icon" aria-hidden="true">
+            <span class="material-icons-round">{{ item.icon }}</span>
+          </span>
+          <span class="item-label rail-hidden">{{ item.label }}</span>
+          <span
+            class="material-icons-round group-chevron rail-hidden"
+            [class.open]="productsOpen()"
+            aria-hidden="true"
+            >expand_more</span
+          >
+        </button>
+        <ul *ngIf="productsOpen()" id="products-submenu" class="nav-submenu">
+          <li *ngFor="let child of item.children">
+            <a
+              [routerLink]="child.route"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: true }"
+              #crla="routerLinkActive"
+              [attr.aria-current]="crla.isActive ? 'page' : null"
+              class="nav-item nav-subitem"
+            >
+              <span class="nav-icon" aria-hidden="true">
+                <span class="material-icons-round">{{ child.icon }}</span>
+              </span>
+              <span class="item-label rail-hidden">{{ child.label }}</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </ng-container>
   </nav>
 
   <div class="sidebar-footer">
-    <div class="user-info">
-      <div class="user-avatar">{{ user()?.name?.substring(0,2) || 'AD' }}</div>
-      <div class="user-details">
-        <p class="user-name">{{ user()?.name || 'Admin User' }}</p>
-        <p class="user-role">Super Admin</p>
+    <div class="user-card">
+      <span class="user-avatar" aria-hidden="true">{{ initials() }}</span>
+      <div class="user-details rail-hidden">
+        <p class="user-name">{{ user()?.name || 'Admin' }}</p>
+        <p class="user-role">{{ roleLabel() }}</p>
       </div>
-      <button class="logout-btn" (click)="logout()" [title]="t().MENU_LOGOUT">
-        <span class="material-icons-round">logout</span>
-      </button>
     </div>
+    <button type="button" class="logout-btn" (click)="logout()">
+      <span class="material-icons-round" aria-hidden="true">logout</span>
+      <span class="rail-hidden">{{ t().MENU_LOGOUT }}</span>
+    </button>
   </div>
 </aside>

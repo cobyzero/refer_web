@@ -1,8 +1,9 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { SocketService } from '../../core/services/socket';
+import { TRANSLATIONS } from '../../core/services/language';
 import { Order, OrderStatus } from '../models/order';
-import { tap, map } from 'rxjs';
+import { tap, map, finalize } from 'rxjs';
 import { API_URL } from '../../core/constants/api';
 
 @Injectable({
@@ -13,6 +14,8 @@ export class OrdersService {
   private socketService = inject(SocketService);
   private apiUrl = `${API_URL}/orders`;
   orders = signal<Order[]>([]);
+  isLoading = signal(false);
+  error = signal<string | null>(null);
 
   connect() {
     // Use the actual socket connected state, not a local flag.
@@ -54,10 +57,26 @@ export class OrdersService {
   }
 
   getOrders() {
-    return this.http.get<any[]>(this.apiUrl).pipe(
-      map(apiOrders => apiOrders.map(o => this.mapApiOrderToModel(o))),
-      tap(orders => this.orders.set(orders))
+    this.isLoading.set(true);
+    this.error.set(null);
+    return this.http.get<any[] | null>(this.apiUrl).pipe(
+      map(apiOrders => (apiOrders ?? []).map(o => this.mapApiOrderToModel(o))),
+      tap({
+        next: (orders) => this.orders.set(orders),
+        error: (err) => {
+          const lang = (localStorage.getItem('lang') === 'en' ? 'en' : 'es') as 'es' | 'en';
+          const dict = TRANSLATIONS[lang];
+          this.error.set(
+            err?.error?.message || `${dict.ORDERS_ERROR} ${dict.ORDERS_LOAD_HINT}`
+          );
+        },
+      }),
+      finalize(() => this.isLoading.set(false))
     );
+  }
+
+  retry() {
+    this.getOrders().subscribe({ error: () => undefined });
   }
 
   updateOrderStatus(orderId: string, newStatus: OrderStatus) {
@@ -90,19 +109,37 @@ export class OrdersService {
       'COMPLETED': 'completed',
       'CANCELLED': 'cancelled'
     };
+    const lang = (localStorage.getItem('lang') === 'en' ? 'en' : 'es') as 'es' | 'en';
+    const dict = TRANSLATIONS[lang];
+    const locale = lang === 'es' ? 'es-ES' : 'en-US';
+
+    const createdMs = new Date(apiOrder.createdAt).getTime();
+    const createdAtMs = Number.isFinite(createdMs) ? createdMs : Date.now();
+    const pickupRaw = apiOrder.pickupTime != null ? new Date(apiOrder.pickupTime).getTime() : NaN;
+    const pickupTimeMs = Number.isFinite(pickupRaw) ? pickupRaw : null;
+    // The app sends pickupTime ≈ now for "lo antes posible". A gap larger than
+    // this means the customer chose a specific pickup hour.
+    const ASAP_WINDOW_MS = 10 * 60 * 1000;
+    const isAsap =
+      pickupTimeMs == null || Math.abs(pickupTimeMs - createdAtMs) <= ASAP_WINDOW_MS;
 
     return {
       id: apiOrder.id,
       orderNumber: apiOrder.orderNumber || apiOrder.id,
-      customerName: apiOrder.user?.name || 'Unknown',
+      customerName: apiOrder.user?.name || dict.ORDERS_UNKNOWN,
       customerEmail: apiOrder.user?.email || '',
-      customerAvatar: apiOrder.user?.photoUrl || `https://i.pravatar.cc/150?u=${apiOrder.userId}`,
+      // No photo → undefined. The UI renders name initials instead
+      // (never stock faces from external providers).
+      customerAvatar: apiOrder.user?.photoUrl || undefined,
       status: statusMap[apiOrder.status] || apiOrder.status,
       totalAmount: Number(apiOrder.total) || 0,
-      createdAt: new Date(apiOrder.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date(createdAtMs).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }),
+      createdAtMs,
+      pickupTimeMs,
+      isAsap,
       items: (apiOrder.items || []).map((item: any) => ({
         id: item.id,
-        name: item.name || item.product?.name || 'Unknown Item',
+        name: item.name || item.product?.name || dict.ORDERS_UNKNOWN_ITEM,
         quantity: item.quantity,
         price: Number(item.price),
         notes: item.notes,
@@ -114,6 +151,11 @@ export class OrdersService {
     };
   }
 
+  /**
+   * Timeline carries translation keys (statusKey/timeKey/detailsKey) plus an
+   * English fallback in the legacy string fields. The detail template resolves
+   * the keys with t() so switching language re-renders without refetching.
+   */
   private generateTimeline(apiOrder: any) {
     const status = apiOrder.status;
     const isOrdered = ['ORDERED', 'PREPARING', 'READY', 'COMPLETED'].includes(status);
@@ -121,9 +163,9 @@ export class OrdersService {
     const isReady = ['READY', 'COMPLETED'].includes(status);
 
     return [
-      { status: 'Order Received', timestamp: 'Just now', details: 'Web Portal', completed: isOrdered, icon: 'check_circle' },
-      { status: 'Preparing Brew', timestamp: isPreparing ? 'Updated' : 'Pending', details: 'Barista Assigned', completed: isPreparing, icon: 'local_cafe' },
-      { status: 'Ready for Pickup', timestamp: isReady ? 'Done' : 'Waiting', details: 'Counter', completed: isReady, icon: 'notifications_active' }
+      { status: 'Order Received', timestamp: 'Just now', details: 'Web Portal', completed: isOrdered, icon: 'check_circle', statusKey: 'ORDERS_TL_RECEIVED', timeKey: 'ORDERS_TL_JUST_NOW', detailsKey: 'ORDERS_TL_WEB' },
+      { status: 'Preparing Brew', timestamp: isPreparing ? 'Updated' : 'Pending', details: 'Barista Assigned', completed: isPreparing, icon: 'local_cafe', statusKey: 'ORDERS_TL_PREPARING', timeKey: isPreparing ? 'ORDERS_TL_UPDATED' : 'ORDERS_TL_PENDING_STATE', detailsKey: 'ORDERS_TL_BARISTA' },
+      { status: 'Ready for Pickup', timestamp: isReady ? 'Done' : 'Waiting', details: 'Counter', completed: isReady, icon: 'notifications_active', statusKey: 'ORDERS_TL_READY', timeKey: isReady ? 'ORDERS_TL_DONE' : 'ORDERS_TL_WAITING', detailsKey: 'ORDERS_TL_COUNTER' }
     ];
   }
 }

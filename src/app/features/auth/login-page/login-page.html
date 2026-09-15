@@ -1,87 +1,152 @@
-<div class="auth-page">
-  <div class="bg-container">
-    <img src="/images/cafe_bg.png" alt="Fondo" class="bg-image">
-    <div class="bg-overlay"></div>
-  </div>
+<main class="auth-page">
+  <!-- ── Brand panel ── -->
+  <section class="brand-panel" aria-label="Refer">
+    <img src="/images/cafe_bg.png" alt="" aria-hidden="true" class="brand-bg" />
+    <div class="brand-scrim" aria-hidden="true"></div>
 
-  <div class="quote-container">
-    <p class="quote-text">Preparando la infusión perfecta, un grano a la vez.</p>
-    <div class="quote-divider"></div>
-  </div>
+    <div class="brand-content">
+      <p class="brand-eyebrow">Tus clientes son tu mejor equipo de ventas</p>
+      <p class="brand-mark">
+        <img src="/images/refer-logo.svg" alt="Logotipo de Refer" class="brand-logo" />
+        Refer
+      </p>
 
-  <div class="login-container">
+      <blockquote class="brand-quote">
+        <p>“Cada compra, reserva o visita suma Stars.”</p>
+      </blockquote>
+      <div class="brand-rule" aria-hidden="true"></div>
+
+      <ul class="brand-points">
+        <li>
+          <span class="material-icons-round" aria-hidden="true">group_add</span>
+          Links y códigos de referido en tiempo real
+        </li>
+        <li>
+          <span class="material-icons-round" aria-hidden="true">stars</span>
+          Stars y recompensas flexibles
+        </li>
+        <li>
+          <span class="material-icons-round" aria-hidden="true">query_stats</span>
+          Dashboard: CAC, LTV y tasa de canje
+        </li>
+      </ul>
+
+      <p class="brand-foot">Solo personal autorizado · Uso interno</p>
+    </div>
+  </section>
+
+  <!-- ── Login panel ── -->
+  <section class="login-panel" aria-labelledby="login-title">
     <div class="login-card">
       <div class="card-header">
-        <div class="logo-wrapper">
-          <img src="/images/logo.png" alt="Logotipo" class="logo">
-        </div>
-        <h1 class="brand-name">Raymund Coffee</h1>
-        <p class="portal-subtitle">PORTAL DE ADMINISTRACIÓN</p>
+        <p class="portal-eyebrow">Portal de administración</p>
+        <h1 id="login-title" class="login-title" tabindex="-1">Bienvenido de nuevo</h1>
+        <p class="login-sub">Inicia sesión para gestionar tu negocio.</p>
       </div>
 
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
-        <div *ngIf="errorMessage" class="error-message">
-          {{errorMessage}}
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form" novalidate>
+        <div *ngIf="errorMessage" class="banner banner-error" role="alert">
+          <span class="material-icons-round" aria-hidden="true">error_outline</span>
+          <p>{{ errorMessage }}</p>
+        </div>
+
+        <div *ngIf="infoMessage && !errorMessage" class="banner banner-info" role="status">
+          <span class="material-icons-round" aria-hidden="true">info_outline</span>
+          <p>{{ infoMessage }}</p>
         </div>
 
         <div class="form-field">
-          <label for="email">CORREO ELECTRÓNICO</label>
+          <label for="email">Correo electrónico</label>
           <div class="input-wrapper">
-            <span class="input-icon material-icons-round">mail_outline</span>
-            <input 
-              type="email" 
-              id="email" 
-              formControlName="email" 
-              placeholder="admin@botanicalatelier.com"
+            <span class="input-icon material-icons-round" aria-hidden="true">mail_outline</span>
+            <input
+              type="email"
+              id="email"
+              formControlName="email"
+              placeholder="admin@tunegocio.com"
               autocomplete="email"
-            >
+              inputmode="email"
+              required
+              [attr.aria-invalid]="emailError ? 'true' : 'false'"
+              [attr.aria-describedby]="emailError ? 'email-err' : null"
+              (blur)="emailCtrl.markAsTouched()"
+            />
           </div>
+          <p *ngIf="emailError" id="email-err" class="field-error" role="alert">
+            <span class="material-icons-round" aria-hidden="true">warning_amber</span>{{ emailError }}
+          </p>
         </div>
 
         <div class="form-field">
-          <label for="password">CONTRASEÑA</label>
+          <label for="password">Contraseña</label>
           <div class="password-input-wrapper">
             <div class="input-wrapper">
-              <span class="input-icon material-icons-round">lock_outline</span>
-              <input 
-                [type]="showPassword ? 'text' : 'password'" 
-                id="password" 
-                formControlName="password" 
-                placeholder="••••••••"
+              <span class="input-icon material-icons-round" aria-hidden="true">lock_outline</span>
+              <input
+                [type]="showPassword ? 'text' : 'password'"
+                id="password"
+                formControlName="password"
+                placeholder="Tu contraseña"
                 autocomplete="current-password"
-              >
+                required
+                minlength="4"
+                [attr.aria-invalid]="passwordError ? 'true' : 'false'"
+                [attr.aria-describedby]="passwordHintIds"
+                (blur)="passwordCtrl.markAsTouched()"
+                (keyup)="onPasswordKey($event)"
+              />
             </div>
-            <button type="button" class="toggle-password" (click)="togglePassword()">
-              <span class="material-icons-round">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+            <button
+              type="button"
+              class="toggle-password"
+              (click)="togglePassword()"
+              [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              [attr.aria-pressed]="showPassword"
+              aria-controls="password"
+            >
+              <span class="material-icons-round" aria-hidden="true">{{
+                showPassword ? 'visibility_off' : 'visibility'
+              }}</span>
             </button>
           </div>
+          <p *ngIf="capsLockOn && !passwordError" id="caps-hint" class="field-hint">
+            <span class="material-icons-round" aria-hidden="true">keyboard</span>Bloq Mayús activado
+          </p>
+          <p *ngIf="passwordError" id="password-err" class="field-error" role="alert">
+            <span class="material-icons-round" aria-hidden="true">warning_amber</span>{{ passwordError }}
+          </p>
         </div>
 
         <div class="form-actions">
-          <label class="remember-me">
-            <input type="checkbox" formControlName="remember">
-            <span class="custom-checkbox"></span>
-            Recordarme
-          </label>
-          <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+          <button type="button" class="forgot-password" (click)="onForgotPassword()">
+            ¿Olvidaste tu contraseña?
+          </button>
         </div>
 
-        <button type="submit" class="signin-btn" [disabled]="loginForm.invalid || isLoading">
+        <button
+          type="submit"
+          class="signin-btn"
+          [disabled]="isLoading"
+          [attr.aria-busy]="isLoading"
+        >
           <span *ngIf="!isLoading" class="btn-content">
-            Iniciar Sesión <span class="arrow">→</span>
+            Iniciar sesión
+            <span class="material-icons-round btn-arrow" aria-hidden="true">arrow_forward</span>
           </span>
-          <span *ngIf="isLoading" class="loader"></span>
+          <span *ngIf="isLoading" class="btn-loading">
+            <span class="loader" aria-hidden="true"></span>
+            <span>Iniciando sesión…</span>
+          </span>
         </button>
       </form>
 
       <div class="card-footer">
-        <p>Solo Personal Autorizado</p>
-        <p>Contacta a Soporte Técnico para problemas de acceso</p>
-        <div class="credentials-hint">
-          <span class="label">Demo:</span>
-          <span class="value">TheAdmin / Admin$123</span>
-        </div>
+        <p>¿Problemas de acceso? Contacta a Soporte Técnico.</p>
+        <p class="credentials-hint">
+          <span class="material-icons-round" aria-hidden="true">science</span>
+          <span><strong>Demo:</strong> admin@admin.com / admin123@</span>
+        </p>
       </div>
     </div>
-  </div>
-</div>
+  </section>
+</main>

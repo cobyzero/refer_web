@@ -1,163 +1,318 @@
 <div class="orders-page">
-
-  <!-- Toast notification -->
-  <div class="toast-notification" *ngIf="toast()" [class.toast-success]="toast()?.type === 'success'" [class.toast-error]="toast()?.type === 'error'">
-    <span class="material-icons-round">{{ toast()?.type === 'success' ? 'check_circle' : 'error' }}</span>
-    {{ toast()?.message }}
+  <!-- Toast: success auto-dismisses, error persists until dismissed -->
+  <div
+    *ngIf="toast() as toast"
+    class="toast-notification"
+    [class.toast-success]="toast.type === 'success'"
+    [class.toast-error]="toast.type === 'error'"
+    [attr.role]="toast.type === 'error' ? 'alert' : 'status'"
+  >
+    <span class="material-icons-round" aria-hidden="true">{{
+      toast.type === 'success' ? 'check_circle' : 'error'
+    }}</span>
+    <p>{{ toast.message }}</p>
+    <button
+      *ngIf="toast.type === 'error'"
+      type="button"
+      class="toast-close"
+      (click)="dismissToast()"
+      [attr.aria-label]="t().ORDERS_DISMISS"
+    >
+      <span class="material-icons-round" aria-hidden="true">close</span>
+    </button>
   </div>
 
   <!-- Main Content -->
-  <div class="orders-main" [class.detail-open]="selectedOrder()">
+  <div class="orders-main">
     <header class="page-header">
-      <h1>Order Management</h1>
-      
-      <div class="filters-scroll">
-        <div class="status-filters">
-          <button 
-            *ngFor="let filter of statusFilters" 
-            class="filter-pill"
-            [class.active]="selectedStatus() === filter.value"
-            (click)="selectedStatus.set(filter.value)"
-          >
-            {{filter.label}}
-          </button>
-        </div>
+      <div class="header-text">
+        <p class="page-eyebrow">{{ countsText() }}</p>
+        <h1>{{ t().ORDERS_TITLE }}</h1>
+        <p class="page-sub">{{ t().ORDERS_SUB }}</p>
       </div>
+      <span class="live-badge" [class.on]="isLive()" role="status">
+        <span class="live-dot" aria-hidden="true"></span>
+        {{ isLive() ? t().ORDERS_LIVE : t().ORDERS_OFFLINE }}
+      </span>
     </header>
 
-    <div class="orders-list">
-      <div 
-        *ngFor="let order of filteredOrders()" 
-        class="order-card"
-        [class.selected]="selectedOrder()?.id === order.id"
-        (click)="selectOrder(order)"
+    <div
+      class="status-filters"
+      role="group"
+      [attr.aria-label]="t().ORDERS_FILTER_LABEL"
+    >
+      <button
+        *ngFor="let filter of statusFilters()"
+        type="button"
+        class="filter-pill"
+        [class.active]="selectedStatus() === filter.value"
+        [attr.aria-pressed]="selectedStatus() === filter.value"
+        (click)="selectFilter(filter.value)"
       >
-        <div class="order-customer">
-          <img [src]="order.customerAvatar" [alt]="order.customerName" class="avatar">
-          <div class="customer-info">
-            <span class="order-id">#{{order.orderNumber}}</span>
-            <h3 class="customer-name">{{order.customerName}}</h3>
-          </div>
-        </div>
+        {{ filter.label }}
+      </button>
+    </div>
 
-        <div class="order-summary">
-          <div class="items-preview">
-            <span class="qty">{{order.items[0].quantity}}x</span>
-            <span class="item-name">{{order.items[0].name}}...</span>
-          </div>
-          <div class="time-info">
-            <span class="material-icons-round">schedule</span>
-            {{order.createdAt}}
-          </div>
-        </div>
+    <!-- Loading — first visit -->
+    <div
+      *ngIf="isLoading() && !orders().length && !listError()"
+      class="loading-block"
+      role="status"
+      [attr.aria-label]="t().ORDERS_LOADING"
+    >
+      <div *ngFor="let i of [1, 2, 3]" class="skeleton-row" aria-hidden="true"></div>
+    </div>
 
-        <div class="order-meta">
-          <span class="price">${{order.totalAmount.toFixed(2)}}</span>
-          <div [class]="getStatusClass(order.status)">
-            {{order.status | uppercase}}
-          </div>
-          <button class="action-btn">
-            <span class="material-icons-round">chevron_right</span>
-          </button>
-        </div>
+    <!-- Error -->
+    <div *ngIf="listError() && !orders().length" class="banner banner-error" role="alert">
+      <span class="material-icons-round" aria-hidden="true">error_outline</span>
+      <div class="banner-body">
+        <p><strong>{{ t().ORDERS_ERROR }}</strong> {{ listError() }}</p>
+        <button type="button" class="btn-retry" (click)="retry()">{{ t().ORDERS_RETRY }}</button>
       </div>
+    </div>
 
-      <!-- Stats Card -->
-      <div class="stats-card">
-        <div class="stats-content">
-          <h2>Today's Brew Count</h2>
-          <p>We've crafted 142 unique beverage experiences today. Keeping the botanical spirit alive.</p>
-        </div>
-        <div class="stats-bg-image"></div>
-      </div>
+    <!-- List -->
+    <ul *ngIf="!isLoading() || orders().length" class="orders-list">
+      <li *ngFor="let order of filteredOrders()">
+        <button
+          type="button"
+          class="order-card"
+          [class.selected]="selectedId() === order.id"
+          [class.priority-soon]="pickupTone(order) === 'soon'"
+          [class.priority-late]="pickupTone(order) === 'late'"
+          [attr.aria-label]="rowLabel(order)"
+          [attr.aria-expanded]="selectedId() === order.id"
+          (click)="selectOrder(order, $event)"
+        >
+          <span class="order-customer">
+            @if (showAvatar(order)) {
+              <img
+                [src]="order.customerAvatar"
+                alt=""
+                class="avatar"
+                loading="lazy"
+                (error)="onAvatarError(order.id)"
+              />
+            } @else {
+              <span class="avatar avatar-initials" aria-hidden="true">{{
+                initialsOf(order.customerName)
+              }}</span>
+            }
+            <span class="customer-info">
+              <span class="order-id">#{{ order.orderNumber }}</span>
+              <span class="customer-name">{{ order.customerName }}</span>
+            </span>
+          </span>
+
+          <span class="order-summary">
+            <span class="items-preview">{{ itemsPreview(order) }}</span>
+            <span
+              class="time-info"
+              [class.tone-now]="pickupTone(order) === 'now'"
+              [class.tone-soon]="pickupTone(order) === 'soon'"
+              [class.tone-late]="pickupTone(order) === 'late'"
+            >
+              <span
+                class="pulse-dot"
+                *ngIf="pickupTone(order) === 'soon' || pickupTone(order) === 'late'"
+                aria-hidden="true"
+              ></span>
+              <span class="material-icons-round" aria-hidden="true">{{ pickupIcon(order) }}</span>
+              {{ pickupRowText(order) }}
+            </span>
+          </span>
+
+          <span class="order-meta">
+            <span class="price">{{ order.totalAmount | currency:currencyCode():'symbol':'1.2-2' }}</span>
+            <span class="status-badge" [ngClass]="order.status">
+              {{ statusLabels()[order.status] ?? order.status }}
+            </span>
+            <span class="material-icons-round chevron" aria-hidden="true">chevron_right</span>
+          </span>
+        </button>
+      </li>
+    </ul>
+
+    <!-- Empty -->
+    <div
+      *ngIf="!isLoading() && !listError() && !filteredOrders().length"
+      class="empty-state"
+    >
+      <span class="material-icons-round" aria-hidden="true">receipt_long</span>
+      <p><strong>{{ t().ORDERS_EMPTY_TITLE }}</strong></p>
+      <p>
+        {{
+          selectedStatus() === 'all' ? t().ORDERS_EMPTY_SUB_ALL : t().ORDERS_EMPTY_SUB_FILTER
+        }}
+      </p>
+      <button
+        *ngIf="selectedStatus() !== 'all'"
+        type="button"
+        class="btn-retry"
+        (click)="selectFilter('all')"
+      >
+        {{ t().ORDERS_CLEAR_FILTER }}
+      </button>
     </div>
   </div>
 
-  <!-- Detail Sidebar -->
-  <aside class="order-detail" *ngIf="selectedOrder()">
+  <!-- Mobile backdrop for the transient detail panel -->
+  <div
+    *ngIf="selectedOrder()"
+    class="detail-backdrop"
+    aria-hidden="true"
+    (click)="closeDetail()"
+  ></div>
+
+  <!-- Detail panel -->
+  <aside
+    *ngIf="selectedOrder() as order"
+    class="order-detail"
+    aria-labelledby="order-detail-title"
+  >
     <div class="detail-header">
       <div class="header-top">
-        <div class="active-label">ACTIVE ORDER</div>
-        <button class="close-btn" (click)="closeDetail()">
-          <span class="material-icons-round">close</span>
+        <p class="active-label">{{ t().ORDERS_ACTIVE }}</p>
+        <button
+          type="button"
+          class="close-btn"
+          (click)="closeDetail()"
+          [attr.aria-label]="t().ORDERS_CLOSE_DETAIL"
+        >
+          <span class="material-icons-round" aria-hidden="true">close</span>
         </button>
       </div>
-      <h2 class="detail-title">#{{selectedOrder()?.orderNumber}}</h2>
-      
+      <h2 class="detail-title" id="order-detail-title" tabindex="-1">
+        #{{ order.orderNumber }}
+      </h2>
+
       <div class="detail-customer">
-        <img [src]="selectedOrder()?.customerAvatar" class="detail-avatar">
+        @if (order.customerAvatar && !avatarFailed()[order.id]) {
+          <img
+            [src]="order.customerAvatar"
+            alt=""
+            class="detail-avatar"
+            (error)="onAvatarError(order.id)"
+          />
+        } @else {
+          <span class="detail-avatar avatar-initials" aria-hidden="true">{{
+            initialsOf(order.customerName)
+          }}</span>
+        }
         <div class="detail-cust-info">
-          <h3>{{selectedOrder()?.customerName}}</h3>
-          <p>{{selectedOrder()?.customerEmail}}</p>
+          <p class="detail-cust-name">{{ order.customerName }}</p>
+          <p>{{ order.customerEmail }}</p>
+        </div>
+        <span class="status-badge" [ngClass]="order.status">
+          {{ statusLabels()[order.status] ?? order.status }}
+        </span>
+      </div>
+
+      <div class="detail-pickup" [ngClass]="'tone-' + pickupTone(order)">
+        <span
+          class="pulse-dot"
+          *ngIf="pickupTone(order) === 'soon' || pickupTone(order) === 'late'"
+          aria-hidden="true"
+        ></span>
+        <span class="material-icons-round" aria-hidden="true">{{ pickupIcon(order) }}</span>
+        <div class="pickup-text">
+          <p class="pickup-title">{{ pickupTitle(order) }}</p>
+          <p class="pickup-sub" *ngIf="pickupSub(order)">{{ pickupSub(order) }}</p>
         </div>
       </div>
     </div>
 
     <div class="detail-content">
-      <section class="items-section">
-        <h4 class="section-title">ORDER ITEMS</h4>
-        <div class="item-row" *ngFor="let item of selectedOrder()?.items">
-          <div class="item-main">
-            <span class="item-name">{{item.name}} <span class="item-qty">x{{item.quantity}}</span></span>
-            <ul class="item-configs" *ngIf="item.size || item.type || (item.enhancements && item.enhancements.length > 0)">
-              <li *ngIf="item.size">Size: {{item.size}}</li>
-              <li *ngIf="item.type">Option: {{item.type}}</li>
-              <li *ngIf="item.enhancements && item.enhancements.length > 0">
-                Add-ons: {{item.enhancements.join(', ')}}
-              </li>
-            </ul>
-            <p class="item-notes" *ngIf="item.notes">Note: "{{item.notes}}"</p>
-          </div>
-          <span class="item-price">${{item.price.toFixed(2)}}</span>
-        </div>
-        
+      <section [attr.aria-label]="t().ORDERS_ITEMS">
+        <h3 class="section-title">{{ t().ORDERS_ITEMS }}</h3>
+        <ul class="items-list">
+          <li class="item-row" *ngFor="let item of order.items">
+            <div class="item-main">
+              <p class="item-name">
+                {{ item.name }} <span class="item-qty">×{{ item.quantity }}</span>
+              </p>
+              <ul
+                class="item-configs"
+                *ngIf="item.size || item.type || (item.enhancements && item.enhancements.length)"
+              >
+                <li *ngIf="item.size">{{ item.size }}</li>
+                <li *ngIf="item.type">{{ item.type }}</li>
+                <li *ngIf="item.enhancements && item.enhancements.length">
+                  {{ item.enhancements.join(', ') }}
+                </li>
+              </ul>
+              <p class="item-notes" *ngIf="item.notes">“{{ item.notes }}”</p>
+            </div>
+            <span class="item-price">{{ item.price | currency:currencyCode():'symbol':'1.2-2' }}</span>
+          </li>
+        </ul>
+
         <div class="total-row">
-          <span>Total Amount</span>
-          <span class="total-price">${{selectedOrder()?.totalAmount?.toFixed(2)}}</span>
+          <span>{{ t().ORDERS_TOTAL }}</span>
+          <span class="total-price">{{ order.totalAmount | currency:currencyCode():'symbol':'1.2-2' }}</span>
         </div>
       </section>
 
-      <section class="timeline-section">
-        <h4 class="section-title">TIMELINE</h4>
-        <div class="timeline">
-          <div class="timeline-item" *ngFor="let step of selectedOrder()?.timeline; let last = last">
-            <div class="timeline-icon" [class.completed]="step.completed">
-              <span class="material-icons-round">{{step.icon || (step.completed ? 'check' : 'radio_button_unchecked')}}</span>
-            </div>
+      <section [attr.aria-label]="t().ORDERS_TIMELINE">
+        <h3 class="section-title">{{ t().ORDERS_TIMELINE }}</h3>
+        <ol class="timeline">
+          <li
+            class="timeline-item"
+            *ngFor="let step of order.timeline; let last = last"
+          >
+            <span
+              class="timeline-icon"
+              [class.completed]="step.completed"
+              aria-hidden="true"
+            >
+              <span class="material-icons-round">{{
+                step.icon || (step.completed ? 'check' : 'radio_button_unchecked')
+              }}</span>
+            </span>
             <div class="timeline-info" [class.last]="last">
-              <h5>{{step.status}}</h5>
-              <p>{{step.timestamp}} • {{step.details}}</p>
+              <p class="timeline-status">{{ timelineStatus(step) }}</p>
+              <p>{{ timelineTime(step) }} · {{ timelineDetails(step) }}</p>
             </div>
-            <div class="timeline-line" *ngIf="!last"></div>
-          </div>
-        </div>
+            <span class="timeline-line" *ngIf="!last" aria-hidden="true"></span>
+          </li>
+        </ol>
       </section>
     </div>
 
     <div class="detail-actions">
-      <p class="actions-label">CHANGE STATUS</p>
-      <div class="status-actions-grid">
+      <p class="actions-label" id="status-actions-label">{{ t().ORDERS_CHANGE_STATUS }}</p>
+      <div
+        class="status-actions-grid"
+        role="group"
+        aria-labelledby="status-actions-label"
+      >
         <button
-          *ngFor="let action of statusActions"
-          [ngClass]="{
-            'status-action-btn': true,
-            'action-pending':    action.value === 'pending',
-            'action-preparing':  action.value === 'preparing',
-            'action-ready':      action.value === 'ready',
-            'action-completed':  action.value === 'completed',
-            'action-cancelled':  action.value === 'cancelled',
-            'active': selectedOrder()?.status === action.value
-          }"
+          *ngFor="let action of statusActions()"
+          type="button"
+          class="status-action-btn"
+          [ngClass]="[
+            'tone-' + action.value,
+            order.status === action.value ? 'active' : '',
+            action.value === 'cancelled' && cancelArmed() && order.status !== 'cancelled'
+              ? 'armed'
+              : ''
+          ]"
+          [attr.aria-pressed]="order.status === action.value"
           [disabled]="isUpdating()"
           (click)="updateStatus(action.value)"
         >
-          <span class="material-icons-round">{{ action.icon }}</span>
-          <span>{{ action.label }}</span>
+          <span class="material-icons-round" aria-hidden="true">{{ action.icon }}</span>
+          <span>{{
+            action.value === 'cancelled' && cancelArmed() && order.status !== 'cancelled'
+              ? t().ORDERS_CANCEL_CONFIRM
+              : action.label
+          }}</span>
         </button>
       </div>
-      <div class="updating-indicator" *ngIf="isUpdating()">
-        <span class="material-icons-round spin">sync</span>
-        Updating…
+      <div class="updating-indicator" *ngIf="isUpdating()" role="status">
+        <span class="material-icons-round spin" aria-hidden="true">sync</span>
+        {{ t().ORDERS_UPDATING }}
       </div>
     </div>
   </aside>
